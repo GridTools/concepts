@@ -1,0 +1,42 @@
+name: wiki_edited
+
+on:
+  gollum
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: setup repo
+      run: |
+        git remote add wiki https://${GITHUB_ACTOR}:${INPUT_GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git
+        git fetch wiki
+
+    - name: push branch
+      run: |
+        # there is a race condition if this runs between wiki edit and a push from somewhere else
+        # then the edit will be lost
+        git checkout wiki/master 
+        export branch_name=$(mktemp -u pr_XXXXXXXXXXXXXX)
+        echo "::set-env name=branch_name::${branch_name}"
+        git checkout -b $branch_name
+        git push origin $branch_name
+    
+    - uses: repo-sync/pull-request@v2
+      with:
+        source_branch: "${{ env.branch_name }}"
+        destination_branch: "master"
+        pr_title: "Edited ${{ github.event.pages[0].title }}"
+        pr_body: "Opened from wiki edit"
+        pr_draft: false
+        pr_allow_empty: true
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: revert changes to wiki
+      run: |
+        git push wiki master --force
