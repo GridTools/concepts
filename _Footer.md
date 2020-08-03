@@ -1,0 +1,1 @@
+This wiki is automatically updated from https://github.com/GridTools/concepts. See [README](README) on how to suggest changes.
