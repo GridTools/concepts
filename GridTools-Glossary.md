@@ -2,6 +2,8 @@
 
 ### Cartesian Grid
 
+A grid where neighbor [grid points](#grid-point) can be addressed by offsets in 2 or 3 Cartesian dimensions. Typical examples are the lat-lon grid of COSMO or the cubed-sphere of FV3.
+
 ### Compute Domain
 
 Describes a set of [grid points](#grid-point) on which the computation is applied. It doesn't contain grid points in the [halo](#halo) of a computation.
@@ -16,9 +18,17 @@ Describes a set of [grid points](#grid-point) on which the computation is applie
 
 ### Iteration Space
 
+TODO disambiguate from compute domain or make it an alias.
+
 ### Origin
 
-### Unstructured
+### Structured Grid
+
+A grid where cells follow a regular pattern that allows strided access to neighbors. Examples of structured grids are [Cartesian grids](#Cartesian-Grid).
+
+### Unstructured Grid
+
+A grid without any assumptions on regularity. Note: any structured grid can be described by an unstructured grid.
 
 ## Language Generation
 
