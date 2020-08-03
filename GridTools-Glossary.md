@@ -1,14 +1,20 @@
-# Glossary for GridTools related projects
-
 ### Boundary
 
-### Cartesian grid
+### Cartesian Grid
 
-### Compute domain
+### Compute Domain
+
+Describes a set of [grid points](#grid-point) on which the computation is applied. It doesn't contain grid points in the [halo](#halo) of a computation.
+
+### Extended Compute Domain
+
+[Compute domain](#compute-domain) extended by halo points where intermediate result are computed in a staged computation.
+
+### Grid point
 
 ### Halo
 
-### Iteration space
+### Iteration Space
 
 ### Origin
 
