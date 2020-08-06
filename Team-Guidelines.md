@@ -2,7 +2,7 @@
 
 ## Preamble
 
-These are guidelines. There is no guideline without exception.
+These are guidelines. There is no guideline without exception. This is a living document, nothing is written in stone.
 
 ## Pull Requests
 
