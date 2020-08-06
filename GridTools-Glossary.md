@@ -16,15 +16,23 @@ Describes a set of [grid points](#grid-point) on which the computation is applie
 
 ### Halo
 
+### ICON
+
+A weather and climate model developed by DWD and MPI-M build on a icosahedral grid. ICON uses an [unstructured](#Unstructured-Grid), but the grid can also be represented as partially [structured](#Structured-grid), see [Pentagon problem](#pentagon-problem).
+
 ### Iteration Space
 
 TODO disambiguate from compute domain or make it an alias.
 
 ### Origin
 
+### Pentagon problem
+
+In the ICON grid, the sphere is built from rhomboids. Within each rhomboid the mesh and dual-mesh are fully structured (triangles, each vertex has exactly 6 edges). At corner points where the rhomboids are patched together, each vertex has only 5 neighbors. TODO add picture.
+
 ### Structured Grid
 
-A grid where cells follow a regular pattern that allows strided access to neighbors. Examples of structured grids are [Cartesian grids](#Cartesian-Grid).
+A grid where cells follow a regular pattern that allows strided access to neighbors. Examples of structured grids are [Cartesian grids](#Cartesian-Grid) or the structured representations of the ICON grid.
 
 ### Unstructured Grid
 
