@@ -9,7 +9,7 @@ These are guidelines. There is no guideline without exception. This is a living 
 ### Keep PRs small
 
 Rationale:
-- Smaller PRs are easier to review, increasing code quality. Reviews on large PRs tend to focus on details as the overall design is lost in the size. The possiblity to [learn from the review](#review-is-a-platform-for-learning-and-knowledge-transfer)
+- Smaller PRs are easier to review, increasing code quality. Reviews on large PRs tend to focus on details as the overall design is lost in the size. The possiblity to [learn from the review](#review-is-a-platform-for-learning-and-knowledge-transfer) is reduced as patterns are harder to understand.
 - Small PRs encourage [faster review](#Review-in-a-timely-manner).
 
 ### PRs are squash merged
