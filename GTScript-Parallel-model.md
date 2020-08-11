@@ -51,7 +51,7 @@ for k in reversed(range(end-2, end)):  # interval B
         a[i, j, k] = 1.1
     parfor ij:
         b[i, j, k] = 2.2
-for k in reversed(range(start, -2)):  # interval A
+for k in reversed(range(start, end-2)):  # interval A
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
