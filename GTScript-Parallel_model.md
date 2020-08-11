@@ -1,5 +1,3 @@
-## GTScript Parallel Model
-
 The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
 
 A GTScript `computation` is composed by one or more vertical `interval` specifications, each one of them representing a vertical loop over its vertical iteration range with a given iteration policy (`FORWARD`, `BACKWARD`, `PARALLEL`). Vertical `interval`s defined inside a computation should not have overlapping iteration ranges.
