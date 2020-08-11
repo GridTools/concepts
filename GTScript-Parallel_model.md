@@ -11,7 +11,7 @@ To summarize the model, we can say that:
 - *computations* are executed sequentially in the order they appear in the code,
 - vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of the  *computation* (where `PARALLEL` means that order is not relevant and thus it will be implementation-specific),
 - *statements* inside *intervals* are executed as (sequential) for-loops 
-  over the `-range following the order defined by the iteration policy,
+  over the `K`-range following the order defined by the iteration policy,
 - a *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on how statements are executed.
 
 #### Example
