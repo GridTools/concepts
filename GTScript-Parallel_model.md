@@ -55,7 +55,7 @@ parfor k in range(start, end):
         b[i, j, k] = 2 * a[i, j, k]      # statement6
 ```
 
-where `parfor` means that there is no guarantee of the order in which the iteration is performed and the following restrictions apply:
+where `parfor` means that there is no guarantee of the order in which the iteration is performed. Additionally, the following restrictions apply:
 
 - No self-assignments if `i != 0` or `j != 0`
 
