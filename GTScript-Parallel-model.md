@@ -16,41 +16,53 @@ To summarize the model, we can say that:
 On an applied example, this means (by definition `start <= end`):
 
 ```python
-with computation(FORWARD):
+with computation(FORWARD):  # Forward computation
     with interval(start, end):
-        a = tmp[1, 1, 0]        # statement1
-        b = 2 * a[1, 1, 0]      # statement2
+        a = tmp[1, 1, 0]
+        b = 2 * a[1, 1, 0]
 
-with computation(BACKWARD):
+with computation(BACKWARD):  # Backward computation
+    with interval(start, -2):  # interval A
+        a = tmp[1, 1, 0]
+        b = 2 * a[0, 0, 0]     
+    with interval(-2, end):    # interval B
+        a = 1.1
+        b = 2.2
+        
+with computation(PARALLEL):  # Parallel computation
     with interval(start, end):
-        a = tmp[1, 1, 0]        # statement3
-        b = 2 * a[0, 0, 0]      # statement4
-with computation(PARALLEL):
-    with interval(start, end):
-        a = tmp[1, 1, 0]        # statement5
-        b = 2 * a[0, 0, 0]      # statement6
+        a = tmp[1, 1, 0]
+        b = 2 * a[0, 0, 0]
 ```
 
 corresponds to the following pseudo-code:
 
 ```python
+# Forward computation
 for k in range(start, end):
     parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]    # statement1
+        a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
-        b[i, j, k] = 2 * a[i+1, i+1, k]  # statement2
+        b[i, j, k] = 2 * a[i+1, i+1, k]
 
-for k in reversed(range(start, end)):
+# Backward computation
+for k in reversed(range(end-2, end)):  # interval B
     parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]    # statement3
+        a[i, j, k] = 1.1
     parfor ij:
-        b[i, j, k] = 2 * a[i, j, k]      # statement4
- 
+        b[i, j, k] = 2.2
+for k in reversed(range(start, -2)):  # interval A
+    parfor ij:
+        a[i, j, k] = tmp[i+1, j+1, k]
+    parfor ij:
+        b[i, j, k] = 2 * a[i, j, k]
+
+# Parallel computation
 parfor k in range(start, end):
     parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]    # statement5
+        a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
-        b[i, j, k] = 2 * a[i, j, k]      # statement6
+        b[i, j, k] = 2 * a[i, j, k]
 ```
 
 where `parfor` means that there is no guarantee of the order in which the iteration is performed. Additionally, the following restrictions apply:
