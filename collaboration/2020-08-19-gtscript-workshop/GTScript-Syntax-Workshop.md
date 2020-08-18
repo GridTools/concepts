@@ -42,18 +42,45 @@ _Author:_ Enrique G. P. (CSCS)
 
 _Priority:_
 
-_Description:_ due to implementation details, scalar values are currently always promoted to `int64` or `float64` data types, since there is no way to define a scalar literal with a specific data type (or numerical precision) in GTScript.
+_Description:_ data types are currently specified (both for fields and scalar parameters) in the type annotations of the definition function:
+```python
+@gtscript.stencil(...)
+def my_stencil(field_a: Field[float], field_b: Field[float], value: float):
+    pass
+```
 
-_Proposal:_  
+The content of each annotation sets argument's data type following these rules:
+
+- if the annotation is a Numpy dtype-like instance, it will be used as it is
+- if the annotation is a builtin numeric type (`float`, `int`) it will be first transformed to a NumPy dtype using NumPy rules (which means: `float` -> `np.float64` and `int` most likely `np.int64`)
+- if the type annotation is a string, the actual data type will be the value of the string in the `dtypes` mapping provided as argument in the stencil decorator call. Example:
+```python
+@gtscript.stencil(..., dtypes={"small_float": np.float32, "large_float": np.float64})
+def my_stencil(field_a: Field["small_float"], field_b: Field["large_float"], value: np.float64):
+    pass
+```
+
+Different approaches can be mixed freely in the same definition signature, and data type aliases are allowed, therefore the following example is also valid:
+```python
+my_float_type = np.float64
+
+@gtscript.stencil(..., dtypes={"my_float": np.float32})
+def my_stencil(field_a: Field[my_float_type], field_a: Field["my_float"], value: float):
+    pass
+```
+
+These options allow the user to write "generic" stencil definitions where the actual data types are choosen at compile time (the `stencil` decorator call). However, since there is no way to define a scalar literal (or a `external` constant) with a specific data type in GTScript, applying these rules to scalar values means that literals are always promoted to `int64` or `float64` data types in the current implementation. This hidden type promotion can lead to generated code with unneccessary type casting operations and numerical issues, since some operations might be executed at the wrong precision.
+
+_Proposal:_ extend the syntax to specify the data types of all the values used in GTScript code.
 - For externals: support and document the use of NumPy scalars (https://numpy.org/doc/stable/reference/arrays.scalars.html) to pass external constant values
 
 Example: 
 ```python
 ALPHA = 4.5
 
-@gtscript.stencil(backend=backend,externals={"ALPHA": np.float32(ALPHA)})
+@gtscript.stencil(backend=backend, externals={"ALPHA": np.float32(ALPHA)})
 def my_stencil(...):
-  pass
+    pass
 ```
 
 - For literals, three _non-exclusive_ strategies:
@@ -71,7 +98,7 @@ def my_stencil(...):
 
 #### Discussion: Clarification of the _Field_ concept
 
-_Author:_ Enrique G. P. (CSCS)
+_Author:_ Enrique G. P. (CSCS), Till Ehrengruber (CSCS), Hannes Vogt (CSCS)
 
 _Priority:_
 
@@ -96,7 +123,7 @@ This proposal also works for unstructured meshes:
 
 
 #### Enhancement: Enhanced definition of fields for cartesian fields
-_Author:_ Enrique G. P. (CSCS), Till Ehrengruber (CSCS)
+_Author:_ Enrique G. P. (CSCS), Till Ehrengruber (CSCS), Hannes Vogt (CSCS)
 
 _Priority:_
 
@@ -138,11 +165,12 @@ In the case of high dimensional fields with data dimensions, it should be first 
 Examples:
 - 5d field => a 3d field of matrices (M x N) on cell centers:  
   (should or could `M`, `N` be fixed values?)
-    + [ ] `Field[[I, J, K], Matrix[float32]]`
+    + [ ] `Field[[I, J, K], Matrix[float32]`
     + [ ] `Field[[I, J, K], Tensor[2, float32]]`
     + [ ] `Field[[I, J, K], Tensor[[M,N], float32]`
     + [ ] `Field[[I, J, K], Matrix[[M, N], float32]]`
     + [ ] `Field[[I, J, K], Vector[N, float32]]`
+    + [ ] Allow both, fixed and dynamically sized: `Matrix[float32]`, `SMatrix[[M, N], float32]`
     + [ ] Others ...
 - 4d field => a 3d field of N-dimensional row-vectors:
     + [ ] `Field[[I, J, K], Vector[N, float32]]`
@@ -151,7 +179,7 @@ Examples:
   Note: `Matrix[1, N]` has different meaning.
 
 #### Enhancement: Definition of fields for unstructured meshes
-_Author:_ Enrique G. P. (CSCS)
+_Author:_ Enrique G. P. (CSCS), Till Ehrengruber (CSCS)
 
 _Priority:_  
 
@@ -244,6 +272,9 @@ c = a[i, j] * b[k]
 ```
 could imply `c[i, j, k]` or simply `c[i, j]`.
  
+**Data dimensions:** if it is allowed to define temporary fields with extra data dimensions, the ambiguities could be harder to solve automatically without explicit user annotations (examples missing).
+
+
 _Proposals:_
 - [ ] Use type annotations in the declaration of temporary fields:
 ```python
@@ -254,7 +285,7 @@ c: Field[I, J, K] = a[i, j] * b[k]
 
 
 #### Discussion/Enhancement: Support for accessing fields with absolute and indirect indices
-_Author:_ Rhea George (Vulcan), Enrique G. P. (CSCS)
+_Author:_ Rhea George (Vulcan)
 
 _Priority:_
 
@@ -358,8 +389,7 @@ _Proposals:_ off-center writes could only be allowed in the vertical direction a
 ### Computation
 
 #### Change: Remove PARALLEL keyword as iteration order
-_Author:_ Enrique G. P. (CSCS)
-
+_Author:_ Enrique G. P. (CSCS), Hannes Vogt (CSCS)
 _Priority:_  
 
 _Description:_ the `PARALLEL` keyword used as vertical iteration order in the computation definition is often misunderstood by users. We should find a cleaner way to specify stencils without a `FORWARD` or `BACKWARD` iteration order.
@@ -400,7 +430,7 @@ _Proposals:_
  + [ ] Allow the user to specify in order of preference and reorder automatically (current behaviour in GT4Py)
       - :heavy_plus_sign: Boundary cases can be grouped together. Might be closer to how you think and develop the underlying algorithm
  + [ ] Force the user to specify in order of execution
-      - :heavy_plus_sign: Comprehension of the execution order and hence the result of the computation is not directly apparent
+      - :heavy_plus_sign: Comprehension of the execution order and hence the result of the computation is directly apparent
 
 Both proposals are essentially trade-offs between the user who is writing the code and the user who is reading it (e.g. for modification).
 
@@ -437,7 +467,7 @@ _Proposals:_ ...
 ### Grid and domain
 
 #### Discussion: Definition of domain and extented domain concepts
-_Author:_ Enrique G. P. (CSCS)
+_Author:_ Enrique G. P. (CSCS), Hannes Vogt (CSCS)
 
 _Priority:_
 
@@ -447,7 +477,7 @@ _Proposals:_ ...
 
 
 #### Discussion: Use of grid objects in cartesian grid definitions
-_Author:_ Enrique G. P. (CSCS)
+_Author:_ Till Ehrengruber (CSCS), Enrique G. P. (CSCS)
 
 _Priority:_
 
