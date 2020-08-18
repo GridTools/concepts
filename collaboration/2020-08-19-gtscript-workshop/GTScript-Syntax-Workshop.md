@@ -84,7 +84,7 @@ _Proposal:_ The following table sketches a possible definition of a Field as a m
 | Mapping/function            | $f: X \rightarrow Y$                              | `Callable[[X], Y]  ## Mapping[X, Y]`    | 
 | Cartesian 3D                | $F: I \times J \times K \rightarrow \mathbb{R}$   | `Field[[I, J, K], float]` | 
 | Cartesian 2D                | $F: I \times J \rightarrow \mathbb{Z}$            | `Field[[I, J], int]`      | 
-| Cartesian 3D (vector field) | $F: I \times J \times K \rightarrow \mathbb{R}^2$ | `Field[[I, J, K], Tuple[float, float]]` | 
+| Cartesian 3D (vector field) | $F: I \times J \times K \rightarrow \mathbb{R}^3$ | `Field[[I, J, K], Tuple[float, float]]` | 
 
 This proposal also works for unstructured meshes:
 
@@ -96,7 +96,7 @@ This proposal also works for unstructured meshes:
 
 
 #### Enhancement: Enhanced definition of fields for cartesian fields
-_Author:_ Enrique G. P. (CSCS)
+_Author:_ Enrique G. P. (CSCS), Till Ehrengruber (CSCS)
 
 _Priority:_
 
@@ -113,6 +113,7 @@ Examples:
     + [ ] `Field[[I, J_INTERFACES, K], float32]`
     + [ ] `Field[[I, J ^ INTERFACES, K], float32]`
     + [ ] `Field[[I, J | INTERFACES, K], float32]`
+    + [ ] All of the previous, but with `North`, `East`, `South`, `West`
     + [ ] Others ...
 - 3d field on J left cell edges:
     + [ ] `Field[[I, J[LEFT], K], float32]`
@@ -121,6 +122,15 @@ Examples:
     + [ ] `Field[[I, J | LEFT, K], float32]`
     + [ ] `Field[[I, J_LEFT_INTERFACE, K], float32]`
     + [ ] `Field[[I, J_INTERFACES[LEFT], K], float32]`
+    + [ ] Avoid horizontal axes altogether and use offsets to reference neighbors (just something to ponder)
+    ```python
+    def stencil(f_a : Field[[Edge, K], float32], f_b : Field[[Cell, K], float32])
+      with location(Cell), ...:
+        # since f_a is a field on edges [-1, 0, 0] refers to the left edge
+        #  of the currently considered cell. [1, 0, 0] would be the right edge
+        #  and [0, 0, 0] is invalid
+        f_a[-1, 0, 0] = f_b[0, 0, 0]
+    ```
     + [ ] Others ...
 
 In the case of high dimensional fields with data dimensions, it should be first discussed if the sizes of the dimensions should be fixed (and thus the sizes are part of the type) or if they can be flexible (and then specified only at compile time or run time). 
@@ -130,11 +140,15 @@ Examples:
   (should or could `M`, `N` be fixed values?)
     + [ ] `Field[[I, J, K], Matrix[float32]]`
     + [ ] `Field[[I, J, K], Tensor[2, float32]]`
-    + [ ] `Field[[I, J, K], Tensor[[3,4], float32]`
-    + [ ] `Field[[I, J, K], Matrix[[3, 4], float32]]`
-    + [ ] `Field[[I, J, K], Vector[3, float32]]`
+    + [ ] `Field[[I, J, K], Tensor[[M,N], float32]`
+    + [ ] `Field[[I, J, K], Matrix[[M, N], float32]]`
+    + [ ] `Field[[I, J, K], Vector[N, float32]]`
     + [ ] Others ...
-
+- 4d field => a 3d field of N-dimensional row-vectors:
+    + [ ] `Field[[I, J, K], Vector[N, float32]]`
+    + [ ] `Field[[I, J, K], Tensor[[N], float32]`
+    + [ ] Others ...  
+  Note: `Matrix[1, N]` has different meaning.
 
 #### Enhancement: Definition of fields for unstructured meshes
 _Author:_ Enrique G. P. (CSCS)
@@ -154,19 +168,19 @@ Examples:
 - field on edges adjacent to cells (_sparse_ concept):
     + [ ] `Field[[Cell, Adjacent[Edge]], float]`
     + [ ] `Field[[Cell, Neighbor[Edge]], float]`
-    + [ ] `Field[[Cell >> Edge]], float]`
-    + [ ] `Field[[Cell ^ Edge]], float]`
-    + [ ] `Field[[Cell @ Edge]], float]`
+    + [ ] `Field[[Cell >> Edge], float]`
+    + [ ] `Field[[Cell ^ Edge], float]`
+    + [ ] `Field[[Cell @ Edge], float]`
     + [ ] Others ...
 
 - field on vertices adjacent to edges adjacent to cells (_sparse_ concept):
-    + [ ] `Field[[Cell, Adjacent[Edge, Vertex], Vertex]], float]`
-    + [ ] `Field[[Cell, Neighbor[Edge, Vertex], Vertex]], float]`
-    + [ ] `Field[[Cell, Adjacent[Edge | Vertex], Vertex]], float]`
-    + [ ] `Field[[Cell, Neighbor[Edge | Vertex], Vertex]], float]`
-    + [ ] `Field[[Cell >> Edge >> Vertex]], float]`
-    + [ ] `Field[[Cell ^ Edge ^ Vertex]], float]`
-    + [ ] `Field[[Cell @ Edge @ Vertex]], float]`
+    + [ ] `Field[[Cell, Adjacent[Edge, Vertex]], float]`
+    + [ ] `Field[[Cell, Neighbor[Edge, Vertex]], float]`
+    + [ ] `Field[[Cell, Adjacent[Edge | Vertex]], float]`
+    + [ ] `Field[[Cell, Neighbor[Edge | Vertex]], float]`
+    + [ ] `Field[[Cell >> Edge >> Vertex], float]`
+    + [ ] `Field[[Cell ^ Edge ^ Vertex], float]`
+    + [ ] `Field[[Cell @ Edge @ Vertex], float]`
     + [ ] Others ...
 
 **_Local field_ concept for neighborhood chains:**
@@ -179,7 +193,7 @@ Examples:
 ### Field indexing
 
 #### Enhancement: Enhance syntax for field indexing in cartesian grids
-_Author:_ Enrique G. P. (CSCS)
+_Author:_ Enrique G. P. (CSCS), Oliver Fuhrer (Vulcan) 
 
 _Priority:_
 
@@ -236,6 +250,7 @@ _Proposals:_
 c: Field[I, J, K] = a[i, j] * b[k]
 ```
 - [ ] Define that all temporary fields always behave as 3d fields, and implement an analysis step to reduce the actual rank of the temporary in the generated code when this is possible
+- [ ] Automatically determine the mask (field dimensionality) by shape inference based on read usage later.
 
 
 #### Discussion/Enhancement: Support for accessing fields with absolute and indirect indices
@@ -368,17 +383,33 @@ _Author:_ Till Ehrengruber (CSCS), Enrique G. P. (CSCS)
 
 _Priority:_  
 
-_Description:_ currently vertical intervals can be specified in any order inside a `computation()`, but they will be executed in the order defined by the `iteration_order` parameter, which means that reading GTScript code from top to bottom does not always reflects the execution order... _WIP_
+_Description:_ currently vertical intervals can be specified in any order inside a `computation()`, but they will be executed in the order defined by the `iteration_order` parameter, which means that reading GTScript code from top to bottom does not always reflect the execution order.
 
-_Proposals:_ ...
+```python
+with computation(BACKWARD):
+  with interval(0, 1): # executed last
+    ...
+  with interval(-1, None): # executed first
+    ...
+  with interval(1, -1): # executed "inbetween"
+    ...
+```
 
+_Proposals:_
+
+ + [ ] Allow the user to specify in order of preference and reorder automatically (current behaviour in GT4Py)
+      - :heavy_plus_sign: Boundary cases can be grouped together. Might be closer to how you think and develop the underlying algorithm
+ + [ ] Force the user to specify in order of execution
+      - :heavy_plus_sign: Comprehension of the execution order and hence the result of the computation is not directly apparent
+
+Both proposals are essentially trade-offs between the user who is writing the code and the user who is reading it (e.g. for modification).
 
 #### Discussion/Enhancement: Expose the iteration index (_positional computations_)
 _Author:_ Till Ehrengruber (CSCS), Enrique G. P. (CSCS)
 
 _Priority:_  
 
-_Description:_ users may want to access the current iteration index in the computation and use it as a numerical value. Since a stencil program will normally contain several iteration loops with different bounds (as part of the extended computation domain), if GT4Py exposes the iteration index, it should be clearly defined how the exposedis index maps to the computation domain, and possible what are the possible consequences/interactions with the merging of stages   ofstages merging step in the analysis phase.
+_Description:_ users may want to access the current iteration index in the computation and use it as a numerical value. Since a stencil program will normally contain several iteration loops with different bounds (as part of the extended computation domain), if GT4Py exposes the iteration index, it should be clearly defined how the exposed index maps to the computation domain, and possible what are the possible consequences/interactions with the merging of stages   ofstages merging step in the analysis phase.
 
 _Proposals:_
 The syntax could be something like the following approach, but it must be always clear to the user which iteration loop is being uexposed:
