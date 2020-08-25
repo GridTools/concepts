@@ -10,7 +10,7 @@ The effect of the program is as if statements are executed as follows:
 - every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
 
 #### Example
-On an applied example, this means (by definition `start <= end`):
+On an applied example (by definition `start <= end`):
 
 ```python
 with computation(FORWARD):  # Forward computation
@@ -62,7 +62,7 @@ parfor k in range(start, end):
         b[i, j, k] = 2 * a[i, j, k]
 ```
 
-where `parfor` means that there is no guarantee of the order in which the iteration is performed.
+where `parfor` implies no guarantee on the order of execution.
 
 
 ### Variable declarations
