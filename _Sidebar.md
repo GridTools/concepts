@@ -9,3 +9,7 @@
 ### Team
 
 [Team Guidelines](Team-Guidelines)
+
+## Meeting Notes
+
+[Cartesian Biweekly](collaboration/cartesian-biweekly/Cartesian-Biweekly)
