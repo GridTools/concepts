@@ -1,15 +1,13 @@
 The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
 
-A GTScript `computation` is composed by one or more vertical `interval` specifications, each one of them representing a vertical loop over its vertical iteration range with a given iteration policy (`FORWARD`, `BACKWARD`, `PARALLEL`). Vertical intervals defined inside a computation should not have overlapping iteration ranges.
+A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an interation policiy (`FORWARD`, `BACKWARD`) and is itself composed of of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
 
-The generated code will be equivalent to executing every statement inside a vertical interval on the full horizontal `IJ` plane before the next one is executed. Individual statements of a computation are considered embarrassingly parallel in the horizontal and therefore there are no guarantees about the loop order in the `IJ` plane. Every iteration of the `K`-loop defined by a vertical interval can only start after the previous iteration have finished. Vertical intervals defined in a `computation` will be sorted according to the iteration policy and then executed in order, that is, every vertical interval will start its execution after all the previous vertical intervals in the iteration order have been fully executed. In the case of a `PARALLEL` iteration policy, vertical intervals will be ordered in any implementation-specific way (no guarantees).
-
-To summarize the model, we can say that:
+The effect of the program is as if statements are executed as follows:
 
 - *computations* are executed sequentially in the order they appear in the code,
-- vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of the *computation* (where `PARALLEL` means that order is not relevant and thus it will be implementation-specific),
+- vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of the *computation*
 - every vertical *interval* is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on how statements are executed.
+- every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
 
 #### Example
 On an applied example, this means (by definition `start <= end`):
@@ -23,11 +21,11 @@ with computation(FORWARD):  # Forward computation
 with computation(BACKWARD):  # Backward computation
     with interval(start, -2):  # interval A
         a = tmp[1, 1, 0]
-        b = 2 * a[0, 0, 0]     
+        b = 2 * a[0, 0, 0]
     with interval(-2, end):    # interval B
         a = 1.1
         b = 2.2
-        
+
 with computation(PARALLEL):  # Parallel computation
     with interval(start, end):
         a = tmp[1, 1, 0]
