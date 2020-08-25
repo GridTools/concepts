@@ -1,4 +1,6 @@
-# 2020/08/03 GT4Py bi-weekly
+---
+title: 2020-08-03
+---
 
 # Action Points
 
@@ -62,7 +64,7 @@ Enrique will add ideas to the syntax workshop
         tmp = field[0,0,1]
         tmp2 = tmp + 1
         field = tmp2
-    
+
         if __INLINED(flag):
             tmp = field[1,0,0]
             tmp2 = tmp + 1
@@ -90,12 +92,12 @@ Enrique will add ideas to the syntax workshop
                                    *dyc*0.5*(sin_sg4[0, -1, 0] + sin_sg2)
         with region[i0 : i0 + 1, :], region[ie - 1 : ie, :]:
           uf = u*dyc*0.5*(sin_sg4[0, -1, 0] + sin_sg2)
-    
+
         vf = (v - 0.25*(ua[-1, 0, 0] + ua)*(cos_sg3[-1, 0, 0] + cos_sg1))  \
                                    *dxc*0.5*(sin_sg3[-1, 0, 0] + sin_sg1)
         with region[:, j0 : j0 + 1], region[:, je - 1 : je]:
           vf = v*dxc*0.5*(sin_sg3[-1, 0, 0] + sin_sg1)
-    
+
         divg_d = rarea_c * (vf[0, -1, 0] - vf + uf[-1, 0, 0] - uf)
         with region[i0 : i0 + 1, j0 : j0 + 1], region[ie - 1 : ie, j0 : j0 + 1]:
           divg_d = rarea_c * (-vf + uf[-1, 0, 0] - uf)
@@ -105,4 +107,3 @@ Enrique will add ideas to the syntax workshop
 
 ## Review status of GDP3-Duck Storages
 - Status update on the state of the GDP3 implementation including 1D/2D fields
-
