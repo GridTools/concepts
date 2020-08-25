@@ -1,5 +1,3 @@
-# 2020/06/23 GT4Py bi-weekly
-
 # Participants
 
 @Jeremy M @Rhea G @Mark C @Eddie D @Tobias W @Oli F …
@@ -27,7 +25,7 @@ Dawn backend correctness
 
 Parallel model
 
-- Code generated with CUDA backend fails to verify on a select few clang-gridtools stencil tests 
+- Code generated with CUDA backend fails to verify on a select few clang-gridtools stencil tests
 
 
 ## Dawn backend merge into master
@@ -56,7 +54,7 @@ Read and comment on (1) soon!
 
 ## Application story: Quantities in FV3
 
-Overview document: [+2020-06-22 Quantity Snapshot](https://paper.dropbox.com/doc/2020-06-22-Quantity-Snapshot-bWtgw0D91vfAwHtBjYuef) 
+Overview document: [+2020-06-22 Quantity Snapshot](https://paper.dropbox.com/doc/2020-06-22-Quantity-Snapshot-bWtgw0D91vfAwHtBjYuef)
 
 
 ## Regions
@@ -70,4 +68,3 @@ Implementation: [GridTools/gt4py#36](https://github.com/GridTools/gt4py/pull/36)
 
 Status: Implemented in frontend, and IRs
 Current work: Python backends, dawn backend
-

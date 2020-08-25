@@ -1,7 +1,3 @@
----
-title: 2020-08-03
----
-
 # Action Points
 
 **Review of action points of last meeting:**

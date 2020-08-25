@@ -10,6 +10,6 @@
 
 [[Team Guidelines]]
 
-## Meeting Notes
+### Meeting Notes
 
 [[Cartesian Biweekly]]

@@ -1,8 +1,6 @@
-# 2020/07/07 GT4Py bi-weekly
-
 # Participants
 
-@Tobias W @Rhea G Linus, Enrique, @Eddie D, @Oliver E 
+@Tobias W @Rhea G Linus, Enrique, @Eddie D, @Oliver E
 
 # Action Points
 
@@ -70,4 +68,3 @@ Runtime values for vertical splits?
 Directional offsets
 Lookup tables
 Absolute indexing in k
-
