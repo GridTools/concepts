@@ -1,5 +1,3 @@
-# 2020/07/21 GT4Py bi-weekly
-
 # Action Points
 
 **Review of action points of last meeting.**
@@ -72,4 +70,3 @@
     - How will analysis work in Dawn, e.g., field versioning?
 - These to be added to the GTScript syntax workshop
 - Increasing in priority as more FV3 code is ported
-
