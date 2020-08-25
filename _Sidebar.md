@@ -8,8 +8,8 @@
 
 ### Team
 
-[Team Guidelines](Team-Guidelines)
+[[Team Guidelines]]
 
 ## Meeting Notes
 
-[Cartesian Biweekly](collaboration/cartesian-biweekly/Cartesian-Biweekly)
+[[Cartesian Biweekly]]
