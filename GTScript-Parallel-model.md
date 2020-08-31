@@ -1,13 +1,25 @@
-The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
+The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis
+`K` represents the vertical spatial dimension.
 
-A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an interation policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
+A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an
+interation policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of of one or more
+non-overlapping vertical `interval` specifications, each one of them representing a vertical loop
+over the indicated indices of the `K`-axis, with the iteration policy of the coputation. Each
+interval contains one or more statements.
 
 The effect of the program is as if statements are executed as follows:
 
 - *computations* are executed sequentially in the order they appear in the code,
-- vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of the *computation*
-- every vertical *interval* is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
+- vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of
+  the *computation*
+- every vertical *interval* is executed as a sequential for-loop over the `K`-range following the
+  order defined by the iteration policy,
+- every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal
+  dimension(s) with no guarantee on the order.
+- the condition of if statements are evaluated where they are stated and saved to an internal
+  temporary field. Each statement of the if scope then only applied if this temporary field is
+  `True` at the respective grid point. Similarly, every statement in the else branch is checked,
+  but the condition is negated. 
 
 #### Example
 On an applied example (by definition `start <= end`):
@@ -30,6 +42,15 @@ with computation(PARALLEL):  # Parallel computation
     with interval(start, end):
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
+
+with computation(PARALLEL):  # Parallel computation with conditional
+    with interval(start, end):
+        if field > threshold:
+            a = tmp[1, 1, 0]
+            b = 2 * a[0, 0, 0]
+        else:
+            a = tmp[0, 0, 0]
+            b = 2 * a[1, 1, 0]
 ```
 
 corresponds to the following pseudo-code:
@@ -54,12 +75,31 @@ for k in reversed(range(start, end-2)):  # interval A
     parfor ij:
         b[i, j, k] = 2 * a[i, j, k]
 
-# Parallel computation
+# Parallel computation with conditional
 parfor k in range(start, end):
     parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]
+        _cond[i, j, k] = field[i, j, k] > threshold
     parfor ij:
-        b[i, j, k] = 2 * a[i, j, k]
+        if _cond[i, j, k]:
+            a[i, j, k] = tmp[i+1, j+1, k]
+    parfor ij:
+        if _cond[i, j, k]:
+            b[i, j, k] = 2 * a[i, j, k]
+    parfor ij:
+        if not _cond[i, j, k]:
+            a[i, j, k] = tmp[i, j, k]
+    parfor ij:
+        if not _cond[i, j, k]:
+            b[i, j, k] = 2 * a[i + 1, j + 1, k]
+
+with computation(PARALLEL):  # Parallel computation
+    with interval(start, end):
+        if field > threshold:
+            a = tmp[1, 1, 0]
+            b = 2 * a[0, 0, 0]
+        else:
+            a = tmp[0, 0, 0]
+            b = 2 * a[1, 1, 0]
 ```
 
 where `parfor` implies no guarantee on the order of execution.
@@ -67,25 +107,37 @@ where `parfor` implies no guarantee on the order of execution.
 
 ### Variable declarations
 
-Variable declarations inside a computation are interpreted as temporary field declarations spanning the actual computation domain of the `computation` where they are defined.
+Variable declarations inside a computation are interpreted as temporary field declarations spanning
+the actual computation domain of the `computation` where they are defined. Fields which are only
+written to in one branch of a conditional will remain unitialized, for all grid points where
+this branch is not executed, meaning the value there will be undefined. 
 
 #### Example
 ```python
 with computation(FORWARD):
     with interval(1, 3):
         tmp = 3
+
+with computation(FORWARD):
+    with interval(1, 3):
+        if input_field > 3:
+            tmp2 = 3
 ```
 behaves like:
 ```python
 tmp = Field(domain_shape)  # Uninitialized field (random data)
 for k in range(0, 3):
     parfor ij:
-        tmp[i, j, k] = 3   # Only this vertical range is properly initialized
+        _cond1[i, j, k] = input_field[i, j, k] > 3
+    parfor ij:
+        if _cond1[i, j, k]:
+            tmp[i, j, k] = 3  # tmp is only properly initialized where input_field > 3
 ```
 
 ### Compute Domain
 
-The computation domain of every statement is extended to ensure that any required data to execute all stencil statements on the compute domain is present.
+The computation domain of every statement is extended to ensure that any required data to execute
+all stencil statements on the compute domain is present.
 
 #### Example
 On an applied example, this means:
