@@ -1,3 +1,5 @@
+[![hackmd-github-sync-badge](https://hackmd.io/9MHp3vuPRVGy1Zf7VILBvw/badge)](https://hackmd.io/9MHp3vuPRVGy1Zf7VILBvw)
+
 ###### tags: `GTScript` `syntax`
 
 - **Date:** 2020/08/19, from 16:00 - 18:00 (CEST)
