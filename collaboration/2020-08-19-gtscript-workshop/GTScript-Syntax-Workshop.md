@@ -6,7 +6,7 @@
 [TOC]
 
 
-## GTScript Syntax: Open Issues
+## GTScript Syntax: Discussed Issues
 
 :::info
 ### Issue description template
@@ -35,6 +35,8 @@ _Description:_ there has not been discussion about the supported data types in G
 _Proposal:_
 - Promote the list of the currently supported data types in the IR definition as the standard data types for GTScript (`bool`, `int8`, `int16`, `int32`, `int64`, `float32`, `float64`) and define a list of data types which might be interesting to add (or remove) in the future.
 - (Optional) Interaction with Dusk/Dawn toolchain?
+
+_Decision:_ **Approved**. Interesting data types to be added or discussed in the future are `unsigned` and `complex` types with different precision.
 
 
 #### Enhancement: Definition of typed scalars (externals and literals)
@@ -83,15 +85,23 @@ def my_stencil(...):
     pass
 ```
 
-- For literals, three _non-exclusive_ strategies:
+- For literals, different _non-exclusive_ strategies:
   1. Inline creation of typed literals (so it can be used inside expressions): `float32(4.5)`
-  2. Type annotations (for symbol definitions): `ALPHA: float32 = 4.5`
-  3. Use `dtypes` argument of `gt.stencil`, with the builtins `int` and `float` as keys, to define the actual implementation data types of Python builtin dtypes (for compile-time definition of the actual dtypes, instead of hardcoding them in the definition code): 
+  2. Provide a `cast_to()` operator for dtypes defined with strings: `field_b = field_a + cast_to("small_float", 43.5)`
+  3. Type annotations for symbol definitions (it should also work with string annotations for types provided at compilation time): `ALPHA: float32 = 4.5`,  `ALPHA: "my_float_type" = 4.5`
+  4. Use `dtypes` argument of `gt.stencil`, with the builtins `int` and `float` as keys, to define the actual implementation data types of Python builtin dtypes (for compile-time definition of the actual dtypes, instead of hardcoding them in the definition code): 
 ```python
 @gtscript.stencil(dtypes={int: np.int32, float: np.float32})
 def my_stencil(...):
   field_a = field_a + 43.5 # => field_a = field_a + float32(43.5)
 ```
+  5. Use user-defined type aliases as keywords for casting: `small_float(43.5)`
+
+_Decision:_ As a first step, we will implement the following options: 1, 3, 4, and later decide about 5.
+
+_Follow-up questions:_
+- Where are type annotations required? Currently not required on functions, but when stencils can call other stencils this will not be parallel.
+
 ---------------------------------------
 
 ### Field definitions
@@ -178,6 +188,9 @@ Examples:
     + [ ] Others ...  
   Note: `Matrix[1, N]` has different meaning.
 
+_Decision:_ Accept trivial extension to field annotations (structured grids) and delay decision on edges and non-scalar data types until later.
+
+
 #### Enhancement: Definition of fields for unstructured meshes
 _Author:_ Enrique G. P. (CSCS), Till Ehrengruber (CSCS)
 
@@ -194,7 +207,7 @@ Examples:
 
 **_Sparse_ concept for neighborhood chains:**
 - field on edges adjacent to cells (_sparse_ concept):
-    + [ ] `Field[[Cell, Adjacent[Edge]], float]`
+    + [ ] `Field[[Edge, Adjacent[Vertex]], float]`
     + [ ] `Field[[Cell, Neighbor[Edge]], float]`
     + [ ] `Field[[Cell >> Edge], float]`
     + [ ] `Field[[Cell ^ Edge], float]`
@@ -216,6 +229,8 @@ Examples:
 - field on vertices adjacent to edges adjacent to cells (_local field_ concept):
     + `Field[[Cell], LocalField[[Edge, Vertex], float]]`
     + [ ] Others ...
+
+_Decision:_ More examples and discussions are needed before taking a decision.
 
 
 ### Field indexing
@@ -245,10 +260,10 @@ def gtscript_function(field, dir):
          - :heavy_check_mark: not ambiguous
          - :heavy_minus_sign: strict I, J, K ordering
          - :x: verbose
-    + [ ] Explicit axes for non-zero offsets (by using `|` instead of `,`, ambiguity is removed and any axes ordering is possible ): `field[K+1 | I-1]`
+    + [x] Explicit axes for non-zero offsets in any order: `field[K+1, I-1]`
          - :heavy_check_mark: succint
          - :heavy_check_mark: readable
-         - :heavy_minus_sign: unusal
+         - :heavy_minus_sign: unusual
     + [ ] Others ...
 
 - Indexing data dimensions:  
@@ -256,6 +271,10 @@ def gtscript_function(field, dir):
     + [ ] Use `__getitem__` of the indexed point: `field[K+1 | I-1][1]`
     + [ ] Use `__getitem__` of the field: `field[K+1 | I-1, 1]`
     + [ ] Others ...
+
+_Decision:_
+  - Support variables containing axes: **approved**
+  - Indexing domain dimensions: **Explicit axes for non-zero offsets in any order** (taking into account collisions with variables declarations and with the syntax for absolute indexing)
 
 
 #### Enhancement: Definition of syntax to specify temporary fields dimensionality
@@ -280,9 +299,14 @@ _Proposals:_
 ```python
 c: Field[I, J, K] = a[i, j] * b[k]
 ```
-- [ ] Define that all temporary fields always behave as 3d fields, and implement an analysis step to reduce the actual rank of the temporary in the generated code when this is possible
-- [ ] Automatically determine the mask (field dimensionality) by shape inference based on read usage later.
+- [x] Define that all temporary fields always behave as 3d fields, and implement an analysis step to reduce the actual rank of the temporary in the generated code when this is possible.
 
+_Decision:_ as a first step, we will try to implement an analysis step to optimize the rank of temporaries without requiring the user to provide type annotations, but this decision could be reverted in the future if we find corner cases where it is not possible to select the right shape without additional information provided by the user.
+
+
+## GTScript Syntax: Open Issues
+
+### Field indexing
 
 #### Discussion/Enhancement: Support for accessing fields with absolute and indirect indices
 _Author:_ Rhea George (Vulcan)
