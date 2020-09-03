@@ -7,7 +7,7 @@ The effect of the program is as if statements are executed as follows:
 - *computations* are executed sequentially in the order they appear in the code,
 - vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of the *computation*
 - every vertical *interval* is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
+- every *statement* in the outer-most scope inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order; *statements* inside blocks are executed inside of the same parallel for-loop
 
 #### Example
 On an applied example (by definition `start <= end`):
@@ -30,6 +30,13 @@ with computation(PARALLEL):  # Parallel computation
     with interval(start, end):
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
+        
+with computation(...):
+    with interval(start, end):
+        if in > 0:
+            out = in
+        else:
+            out = 0
 ```
 
 corresponds to the following pseudo-code:
@@ -60,6 +67,13 @@ parfor k in range(start, end):
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
         b[i, j, k] = 2 * a[i, j, k]
+        
+parfor k in range(start, end):
+    parfor ij:
+        if a[i, j, k] > 0: # same if the if is on a scalar
+            out[i, j, k] = in[i, j, k]
+        else:
+            out[i, j, k] = 0
 ```
 
 where `parfor` implies no guarantee on the order of execution.
@@ -103,3 +117,10 @@ for k in range(start, end):
         u[i, j, k] = 1
     parfor [i_start:i_end, j_start:j_end]:
         b[i, j, k] = u[i-2,j,k] + u[i+1,j,k] + u[i,j-1,k] + u[i,j-2,k]
+```
+### Conditionals
+
+GTScript has 3 kinds of conditionals
+- `if` on a scalar value
+- `if` on a field, meaning if on the field at the gridpoint of the current iteration
+- `with condition():` to express a compile time conditional (former `_INLINE if`)
