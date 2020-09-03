@@ -7,7 +7,7 @@ The effect of the program is as if statements are executed as follows:
 - *computations* are executed sequentially in the order they appear in the code,
 - vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of the *computation*
 - every vertical *interval* is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
+- every *assignment* inside the *interval* is executed as an immediate assigment of all field values from the r.h.s. to the l.h.s. (implementation detail: fields that appear on the r.h.s. and the l.h.s. are versioned)
 
 #### Example
 On an applied example (by definition `start <= end`):
@@ -30,6 +30,10 @@ with computation(PARALLEL):  # Parallel computation
     with interval(start, end):
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
+        
+with computation(...):
+    with interval(start, end):
+        a = a[-1,0,0] # self assignment with shift
 ```
 
 corresponds to the following pseudo-code:
@@ -60,6 +64,12 @@ parfor k in range(start, end):
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
         b[i, j, k] = 2 * a[i, j, k]
+
+parfor k in range(start, end):
+    parfor ij:
+        tmp_a[i, j, k] = a[i, j, k]
+    parfor ij:
+        a[i, j, k] = tmp_a[i-1, j, k]
 ```
 
 where `parfor` implies no guarantee on the order of execution.
