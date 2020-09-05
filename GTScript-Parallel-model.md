@@ -184,9 +184,11 @@ for k in range(start, end):
 
 We distinguish between 2 kinds of conditionals (TODO thanks to proposal 4), `if`s on scalars, and `if`s on fields.
 
+### `if` on scalars
+
 The former doesn't imply any difficulties, the condition is evaluated inside the vertical loop and normal rules apply for the statements in the branches.
 
-### Example
+**Example**
 
 ```python
 with computation(PARALLEL), interval(...):
