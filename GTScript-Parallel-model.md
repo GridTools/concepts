@@ -244,7 +244,7 @@ with computation(...) with interval(...):
 translates to
 
 ```python
-for k in range(start, end):
+for k in range(...):
     parfor ij:
         some_field_mask[i,j] = some_field[i,j,k] > 0
 
@@ -254,9 +254,57 @@ for k in range(start, end):
     parfor ij:
         if some_field_mask:
             out_if = in_if
-
     parfor ij:
         if not some_field_mask:
             out_else = 2 * in_else
+    parfor ij:
+        if some_field_mask:
+            out = out_if
+        if not some_field_mask:
+            out = out_else
+```
+
+For nested conditionals
+
+```python
+with computation(...) with interval(...):
+    if some_field > 0:
+        if some_other_field < 0:
+            out = some_field
+        else:
+            out = some_other_field:
+    else:
+        out = in
+```
+
+translates to
+
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask = some_field > 0
+    parfor ij:
+        some_field_if_if = some_field
+        some_other_field_if_else = some_other_field
+        in_else = in
+    parfor ij:
+        if some_field_mask:
+            if some_other_field_mask:
+                out_if_if = some_field_if_if
+    parfor ij:
+        if some_field_mask:
+            if not some_other_field_mask:
+                out_if_else = some_other_field_if_else
+    parfor ij:
+        if not some_field_mask:
+            out_else = in_else
+    parfor ij:
+        if some_field_mask:
+            if some_other_field_mask:
+                out = out_if_if
+            else:
+                out = out_if_else
+        else:
+            out = out_else
 
 ```
