@@ -238,7 +238,7 @@ with computation(...) with interval(...):
     if some_field > 0:
         out = in
     else:
-        out = 0
+        out = 2*in
 ```
 
 translates to
@@ -246,5 +246,10 @@ translates to
 ```python
 for k in range(start, end):
     parfor ij:
-        some_field_mask[i,j] =
+        some_field_mask[i,j] = some_field[i,j,k] > 0
+
+    parfor ij: # note that this is always just a copy and therefore it doesn't matter if in the same parfor ij
+        in_if = in
+        in_else = in
+    if(some_field_mask)
 ```
