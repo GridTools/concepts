@@ -191,7 +191,7 @@ Conditions on scalars are straight-forward, the condition is evaluated inside th
 **Example**
 
 ```python
-with computation(PARALLEL), interval(...):
+with computation(...), interval(...):
     if scalar_flag:
         b = a
         c = b
@@ -218,3 +218,33 @@ for k in range(start, end):
 ```
 
 ### `if` on fields
+
+For conditions with fields, the `if`-`else`-statement behaves as if it is evaluated for each gridpoint without interference with other gridpoints. This is intuitive behavior, however hard to implement.
+
+To comply with principle 4 we need an unambigous translation to parallel code and find an optimization
+to efficient code.
+
+**translation to parallel code**
+
+For each IJ-plane
+
+- The condition is evaluated in a parfor loop and written to a _mask_ field.
+- Each field that is referenced in either the `if` or `else` branch is versioned separately (i.e. if the field appears in both branches, each branch gets a version).
+- All assignments inside the branches are done on versioned left hand sides.
+- After the conditional, the field versions are written to their output counterparts.
+
+```python
+with computation(...) with interval(...):
+    if some_field > 0:
+        out = in
+    else:
+        out = 0
+```
+
+translates to
+
+```python
+for k in range(start, end):
+    parfor ij:
+        some_field_mask[i,j] =
+```
