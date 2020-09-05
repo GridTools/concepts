@@ -257,6 +257,6 @@ for k in range(start, end):
 
     parfor ij:
         if not some_field_mask:
-            out_else = in_if
+            out_else = 2 * in_else
 
 ```
