@@ -308,4 +308,33 @@ for k in range(...):
             out = out_else
 ```
 
-TODO add Eddie's case to illustrate the parfor around each assignment
+The previous examples don't illustrate the necessity of the parfor around each statement.
+Here is "Eddie's example"
+
+```python
+with computation(...) with interval(...):
+    if some_field > 0:
+        tmp = inout
+        inout = tmp[-1, 0, 0]
+```
+
+which translates to
+
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask = some_field > 0
+    parfor ij:
+        inout_if = inout
+    parfor i(-1,0)j
+        if some_field_mask:
+            tmp_if = inout_if
+    parfor ij:
+        if some_field_mask:
+            inout_if = tmp_if # TODO here is a version name mistake for a general algorithm
+    parfor ij:
+        if some_field_mask:
+            inout = inout_if
+
+
+```
