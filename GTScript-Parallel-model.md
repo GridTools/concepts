@@ -226,7 +226,7 @@ to efficient code.
 
 **translation to parallel code**
 
-For each IJ-plane
+For each IJ-plane:
 
 - The condition is evaluated in a parfor loop and written to a _mask_ field.
 - Each field that is referenced in either the `if` or `else` branch is versioned separately (i.e. if the field appears in both branches, each branch gets a version).
