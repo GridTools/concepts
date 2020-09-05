@@ -306,5 +306,6 @@ for k in range(...):
                 out = out_if_else
         else:
             out = out_else
-
 ```
+
+TODO add Eddie's case to illustrate the parfor around each assignment
