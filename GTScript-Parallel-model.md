@@ -186,7 +186,7 @@ We distinguish between 2 kinds of conditionals (TODO thanks to proposal 4), `if`
 
 ### `if` on scalars
 
-The former doesn't imply any difficulties, the condition is evaluated inside the vertical loop and normal rules apply for the statements in the branches.
+Conditions on scalars are straight-forward, the condition is evaluated inside the vertical loop and normal rules apply for the statements in the branches.
 
 **Example**
 
