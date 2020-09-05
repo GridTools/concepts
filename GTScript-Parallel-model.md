@@ -5,21 +5,26 @@ In some cases wise cannot fulfill all principles and a trade-off has to be made 
 
 Trivia: GTScript is an embedded DSL in Python, therefore language syntax is restricted to valid Python syntax.
 
-- Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
-  in Python or well-known Python libraries (e.g. Numpy).
-- Semantic differences should be reflected in syntactic differences.
-- Regular use-cases should be simple, special cases can be complex.
+1. Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
+   in Python or well-known Python libraries (e.g. Numpy).
+2. Semantic differences should be reflected in syntactic differences.
+3. Regular use-cases should be simple, special cases can be complex.
+4. Language constructs are required to have an unambiguous translation to parallel code and need to allow translation
+   to efficient code in the regular use-cases.
+
+## Parallel Model
 
 The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
 
-A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an interation policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
+A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an iteration policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
 
 The effect of the program is as if statements are executed as follows:
 
 - _computations_ are executed sequentially in the order they appear in the code,
 - vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
 - every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- every _statement_ inside the _interval_ is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
+- for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
+- for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above.
 
 #### Example
 
