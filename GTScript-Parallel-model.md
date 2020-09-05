@@ -3,7 +3,7 @@
 The following principles are a guideline for designing the GTScript DSL. We try to follow these principles if we can.
 In some cases wise cannot fulfill all principles and a trade-off has to be made and justified.
 
-The principles mainly summarize the obvious.
+The principles are not magic, they mainly summarize the obvious.
 
 Trivia: GTScript is an embedded DSL in Python, therefore language syntax is restricted to valid Python syntax.
 
