@@ -7,7 +7,13 @@ Trivia: GTScript is an embedded DSL in Python, therefore language syntax is rest
 
 1. Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
    in Python or well-known Python libraries (e.g. Numpy).
+
+   Motivation: The DSL should be readable by applying common sense and without deep knowledge of the language.
+
 2. Semantic differences should be reflected in syntactic differences.
+
+   Motivation:
+
 3. Regular use-cases should be simple, special cases can be complex.
 4. Language constructs are required to have an unambiguous translation to parallel code and need to allow translation
    to efficient code in the regular use-cases.
