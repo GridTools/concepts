@@ -3,16 +3,18 @@
 The following principles are a guideline for designing the GTScript DSL. We try to follow these principles if we can.
 In some cases wise cannot fulfill all principles and a trade-off has to be made and justified.
 
+The principles mainly summarize the obvious.
+
 Trivia: GTScript is an embedded DSL in Python, therefore language syntax is restricted to valid Python syntax.
 
 1. Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
    in Python or well-known Python libraries (e.g. Numpy).
 
-   Motivation: The DSL should be readable by applying common sense and without deep knowledge of the language.
+   Motivation: The DSL should be readable by applying common sense and common programming language knowledge.
 
 2. Semantic differences should be reflected in syntactic differences.
 
-   Motivation:
+   Motivation: Spotting semantic differences is much harder than spotting syntactic differences.
 
 3. Regular use-cases should be simple, special cases can be complex.
 4. Language constructs are required to have an unambiguous translation to parallel code and need to allow translation
@@ -87,8 +89,6 @@ parfor k in range(start, end):
 ```
 
 where `parfor` implies no guarantee on the order of execution.
-
-### Variable declarations
 
 Variable declarations inside a computation are interpreted as temporary field declarations spanning the actual computation domain of the `computation` where they are defined.
 
