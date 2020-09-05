@@ -231,7 +231,7 @@ For each IJ-plane:
 - The condition is evaluated in a parfor loop and written to a _mask_ field.
 - Each field that is referenced in either the `if` or `else` branch is versioned separately (i.e. if the field appears in both branches, each branch gets a version).
 - All assignments inside the branches are done on versioned left hand sides.
-- After the conditional, the field versions are written to their output counterparts taking into account the branch origin
+- After the conditional, the field versions are written to their output counterparts taking into account the branch origin.
 
 ```python
 with computation(...) with interval(...):
