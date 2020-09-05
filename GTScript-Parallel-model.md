@@ -1,15 +1,28 @@
+## GTScript language design guideline
+
+The following principles are a guideline for designing the GTScript DSL. We try to follow these principles if we can.
+In some cases wise cannot fulfill all principles and a trade-off has to be made and justified.
+
+Trivia: GTScript is an embedded DSL in Python, therefore language syntax is restricted to valid Python syntax.
+
+- Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
+  in Python or well-known Python libraries (e.g. Numpy).
+- Semantic differences should be reflected in syntactic differences.
+- Regular use-cases should be simple, special cases can be complex.
+
 The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
 
 A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an interation policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
 
 The effect of the program is as if statements are executed as follows:
 
-- *computations* are executed sequentially in the order they appear in the code,
-- vertical *intervals* are executed sequentially in the order defined by the *iteration policy* of the *computation*
-- every vertical *interval* is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- every *statement* inside the *interval* is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
+- _computations_ are executed sequentially in the order they appear in the code,
+- vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
+- every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
+- every _statement_ inside the _interval_ is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
 
 #### Example
+
 On an applied example (by definition `start <= end`):
 
 ```python
@@ -64,18 +77,20 @@ parfor k in range(start, end):
 
 where `parfor` implies no guarantee on the order of execution.
 
-
 ### Variable declarations
 
 Variable declarations inside a computation are interpreted as temporary field declarations spanning the actual computation domain of the `computation` where they are defined.
 
 #### Example
+
 ```python
 with computation(FORWARD):
     with interval(1, 3):
         tmp = 3
 ```
+
 behaves like:
+
 ```python
 tmp = Field(domain_shape)  # Uninitialized field (random data)
 for k in range(0, 3):
@@ -88,6 +103,7 @@ for k in range(0, 3):
 The computation domain of every statement is extended to ensure that any required data to execute all stencil statements on the compute domain is present.
 
 #### Example
+
 On an applied example, this means:
 
 ```python
@@ -95,6 +111,7 @@ with computation(PARALLEL), interval(...):
     u = 1
     b = u[-2, 0, 0] + u[1, 0, 0] + u[0, -1, 0] + u[0, -2, 0]
 ```
+
 translates into the following pseudo code:
 
 ```python
@@ -103,3 +120,4 @@ for k in range(start, end):
         u[i, j, k] = 1
     parfor [i_start:i_end, j_start:j_end]:
         b[i, j, k] = u[i-2,j,k] + u[i+1,j,k] + u[i,j-1,k] + u[i,j-2,k]
+```
