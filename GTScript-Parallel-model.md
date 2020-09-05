@@ -1,24 +1,39 @@
 ## GTScript language design guideline
 
 The following principles are a guideline for designing the GTScript DSL. We try to follow these principles if we can.
-In some cases wise cannot fulfill all principles and a trade-off has to be made and justified.
+In some cases we cannot fulfill all principles and a trade-off has to be made and justified.
 
 The principles are not magic, they mainly summarize the obvious.
 
 Trivia: GTScript is an embedded DSL in Python, therefore language syntax is restricted to valid Python syntax.
 
-1. Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
-   in Python or well-known Python libraries (e.g. Numpy).
+1. **Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
+   in Python or well-known Python libraries (e.g. Numpy).**
 
    Motivation: The DSL should be readable by applying common sense and common programming language knowledge.
 
-2. Semantic differences should be reflected in syntactic differences.
+2. **Semantic differences should be reflected in syntactic differences.**
 
    Motivation: Spotting semantic differences is much harder than spotting syntactic differences.
 
-3. Regular use-cases should be simple, special cases can be complex.
-4. Language constructs are required to have an unambiguous translation to parallel code and need to allow translation
-   to efficient code in the regular use-cases.
+3. **Regular use-cases should be simple, special cases can be complex.**
+
+   Motivation: If a trade-off has to be made, the most common, standard use-cases should be expressed in the simplest
+   possible way. To cover all cases, corner cases might require more complex language constructs.
+
+4. **Language constructs are required to have an _unambiguous translation to parallel code_ and need to allow translation
+   to efficient code _in the regular use-cases_.**
+
+   Motivation: When translating DSL to executable code, we must not make correctness errors, therefore we cannot allow
+   ambiguous language constructs.
+   If we fail,
+
+   - the user will run into hard to debug problems,
+   - the toolchain developer cannot reason about the code and will fail in writing correct optimizations.
+
+   On purpose, performance is second and, on purpose, the requirement to produce efficient code is restricted to regular use-cases. Obviously, for a performance portable language, the regular use-cases are required to have an
+   efficient translation. But this principle acknowledges that we cannot exclude that for some special cases an
+   efficient translation cannot be found.
 
 ## Parallel Model
 
@@ -28,15 +43,42 @@ A `gtscript.stencil` is composed of one or more `computation`. Each `computation
 
 The effect of the program is as if statements are executed as follows:
 
-- _computations_ are executed sequentially in the order they appear in the code,
-- vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
-- every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
-- for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above.
+1. _computations_ are executed sequentially in the order they appear in the code,
+2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
+3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
+4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
+5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above.
 
-#### Example
+### Example
 
-On an applied example (by definition `start <= end`):
+In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
+the important parts.
+
+**Rule 4**
+
+```python
+with computation(...):
+    with interval(...):
+        a = b
+```
+
+translates to
+
+```python
+for k:
+    parfor ij:
+        tmp_b = b
+    parfor ij:
+        a = tmp_b
+```
+
+which reflects principle 4, the translation to parallel code is unambigous. Removing the (in this case) unneeded
+temporary is up to optimization.
+
+In the following examples, the translation of each right hand side to an intermediate temporary is implicit for
+simplicity and to avoid distraction from the important aspect.
+
+In the following, `start <= end`,
 
 ```python
 with computation(FORWARD):  # Forward computation
@@ -89,6 +131,8 @@ parfor k in range(start, end):
 ```
 
 where `parfor` implies no guarantee on the order of execution.
+
+## Variable declarations
 
 Variable declarations inside a computation are interpreted as temporary field declarations spanning the actual computation domain of the `computation` where they are defined.
 
