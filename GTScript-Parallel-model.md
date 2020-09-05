@@ -1,4 +1,4 @@
-## GTScript language design guideline
+# GTScript language design guideline
 
 The following principles are a guideline for designing the GTScript DSL. We try to follow these principles if we can.
 In some cases we cannot fulfill all principles and a trade-off has to be made and justified.
@@ -35,7 +35,7 @@ Trivia: GTScript is an embedded DSL in Python, therefore language syntax is rest
    efficient translation. But this principle acknowledges that we cannot exclude that for some special cases an
    efficient translation cannot be found.
 
-## Parallel Model
+# Parallel Model
 
 The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
 
@@ -66,17 +66,18 @@ translates to
 
 ```python
 for k:
+    tmp_b: IJField
     parfor ij:
         tmp_b = b
     parfor ij:
         a = tmp_b
 ```
 
-which reflects principle 4, the translation to parallel code is unambigous. Removing the (in this case) unneeded
-temporary is up to optimization.
+which reflects principle 4, the translation to parallel code is unambigous.
+Note: Removing the (in this case) unneeded temporary is up to optimization.
 
 In the following examples, the translation of each right hand side to an intermediate temporary is implicit for
-simplicity and to avoid distraction from the important aspect.
+simplicity and to avoid distraction from the important aspects.
 
 In the following, `start <= end`,
 
@@ -136,7 +137,7 @@ where `parfor` implies no guarantee on the order of execution.
 
 Variable declarations inside a computation are interpreted as temporary field declarations spanning the actual computation domain of the `computation` where they are defined.
 
-#### Example
+### Example
 
 ```python
 with computation(FORWARD):
@@ -153,11 +154,13 @@ for k in range(0, 3):
         tmp[i, j, k] = 3   # Only this vertical range is properly initialized
 ```
 
-### Compute Domain
+Note: Demoting the temporary field to a local variable is up to optimization.
+
+## Compute Domain
 
 The computation domain of every statement is extended to ensure that any required data to execute all stencil statements on the compute domain is present.
 
-#### Example
+### Example
 
 On an applied example, this means:
 
@@ -175,4 +178,39 @@ for k in range(start, end):
         u[i, j, k] = 1
     parfor [i_start:i_end, j_start:j_end]:
         b[i, j, k] = u[i-2,j,k] + u[i+1,j,k] + u[i,j-1,k] + u[i,j-2,k]
+```
+
+## Conditionals
+
+We distinguish between 2 kinds of conditionals (TODO thanks to proposal 4), `if`s on scalars, and `if`s on fields.
+
+The former doesn't imply any difficulties, the condition is evaluated inside the vertical loop and normal rules apply for the statements in the branches.
+
+### Example
+
+```python
+with computation(PARALLEL), interval(...):
+    if scalar_flag:
+        b = a
+        c = b
+    else:
+        b = 1
+        c = 1
+```
+
+translates to
+
+```python
+for k in range(start, end):
+    if scalar_flag:
+        parfor ij:
+            b = a
+        parfor ij:
+            c = b
+    else:
+        parfor ij:
+            b = 1
+        parfor ij:
+            c = 1
+
 ```
