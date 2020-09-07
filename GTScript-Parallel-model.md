@@ -331,10 +331,16 @@ for k in range(...):
             tmp_if = inout_if
     parfor ij:
         if some_field_mask:
-            inout_if = tmp_if # TODO here is a version name mistake for a general algorithm
+            inout_if = tmp_if # TODO here is a version name mistake if it should be a general algorithm
     parfor ij:
         if some_field_mask:
             inout = inout_if
-
-
 ```
+
+**translation to efficient code for the regular cases**
+
+Exercise for the reader. ;)
+
+No, seriously. We should first define the regular case. Is it enough to optimize the simple cases that have a direct translation to ternary or should we consider Oli's sea-ice example as well.
+
+Then we need probably a prototype implementation.
