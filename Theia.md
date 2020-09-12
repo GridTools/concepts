@@ -1,0 +1,1 @@
+- https://github.com/zowe/vscode-extension-for-zowe/blob/master/docs/README-Theia.md
