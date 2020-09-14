@@ -88,10 +88,10 @@ with computation(FORWARD):  # Forward computation
         b = 2 * a[1, 1, 0]
 
 with computation(BACKWARD):  # Backward computation
-    with interval(start, -2):  # interval A
+    with interval(start, -2):  # lower interval
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
-    with interval(-2, end):    # interval B
+    with interval(-2, end):    # upper interval
         a = 1.1
         b = 2.2
 
@@ -112,12 +112,14 @@ for k in range(start, end):
         b[i, j, k] = 2 * a[i+1, i+1, k]
 
 # Backward computation
-for k in reversed(range(end-2, end)):    # interval B
+# upper interval
+for k in reversed(range(end-2, end)):
     parfor ij:
         a[i, j, k] = 1.1
     parfor ij:
         b[i, j, k] = 2.2
-for k in reversed(range(start, end-2)):  # interval A
+# lower interval
+for k in reversed(range(start, end-2)):
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
@@ -132,6 +134,83 @@ parfor k in range(start, end):
 ```
 
 where `parfor` implies no guarantee on the order of execution.
+
+<table><tr>
+<td><details><summary>NumPy style</summary>
+
+```python
+# Domain definition
+# i, I = domain_start_i, domain_end_i
+# j, J = domain_start_j, domain_end_j
+
+# Forward computation
+for k in range(start, end):
+    a[i:I, j:J, k] = tmp[i+1:I+1, j:J, k]
+    b[i:I, j:J, k] = 2 * a[i+1:I+1, j+1:J+1, k]
+
+# Backward computation
+# upper interval
+for k in reversed(range(end-2, end)):
+    a[i:I, j:J, k] = 1.1
+    b[i:I, j:J, k] = 2.2
+# lower interval
+for k in reversed(range(start, end-2)):
+    a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
+    b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
+
+# Parallel computation
+for k in random.shuffle(range(start, end)):
+    a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
+    b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
+```
+
+</details></td>
+<td><details><summary>C++ style</summary>
+
+```cpp
+# Forward computation
+for (int k=0; k < end; k++) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = tmp[i+1, j+1, k]
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2 * a[i+1, i+1, k]
+    }
+}
+
+# Backward computation
+# upper interval
+for (int k=end-1; k >= end-2; k--) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = 1.1
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2.2
+    }
+# lower interval
+for (int k=end-2; k >= 0; k--) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = tmp[i+1, j+1, k]
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2 * a[i, j, k]
+    }
+
+# Parallel computation
+parallel_for (int k=0; k < end; k++) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = tmp[i+1, j+1, k]
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2 * a[i, j, k]
+    }
+```
+where `parallel_for` implies no guarantee on the order of execution.
+
+</details></td>
+</tr></table>
+
+
 
 ## Variable declarations
 
@@ -337,10 +416,971 @@ for k in range(...):
             inout = inout_if
 ```
 
-**translation to efficient code for the regular cases**
+# Translation to efficient code for the regular cases
+Here we show how the examples given above can be made efficient by analysis and transformation.
 
-Exercise for the reader. ;)
+### Simple "ternary-like" conditional
+<details>
+```python
+with computation(...) with interval(...):
+    if some_field > 0:
+        out = in
+    else:
+        out = 2*in
+```
 
-No, seriously. We should first define the regular case. Is it enough to optimize the simple cases that have a direct translation to ternary or should we consider Oli's sea-ice example as well.
+which translates to
 
-Then we need probably a prototype implementation.
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+
+    parfor ij: # note that this is always just a copy and therefore it doesn't matter if in the same parfor ij
+        in_if[i, j] = in[i, j, k]
+        in_else[i, j] = in[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            out_if[i, j] = in_if[i, j]
+    parfor ij:
+        if not some_field_mask:
+            out_else[i, j] = 2 * in_else[i, j]
+    parfor ij:
+        if some_field_mask:
+            out[i, j, k] = out_if[i, j]
+        else:
+            out[i, j, k] = out_else[i, j]
+```
+
+```python
+with computation(...) with interval(...):
+    if some_field > 0:
+        out = in
+    else:
+        out = 2*in
+```
+
+which translates to
+
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+
+    parfor ij: # note that this is always just a copy and therefore it doesn't matter if in the same parfor ij
+        in_if[i, j] = in[i, j, k]
+        in_else[i, j] = in[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            out_if[i, j] = in_if[i, j]
+    parfor ij:
+        if not some_field_mask:
+            out_else[i, j] = 2 * in_else[i, j]
+    parfor ij:
+        if some_field_mask:
+            out[i, j, k] = out_if[i, j]
+        if not some_field_mask:
+            out[i, j, k] = out_else[i, j]
+```
+
+We can iteratively inline the values of temporaries, if they are never changed:
+
+First iteration:
+
+```python
+for k in range(...):
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            out_if[i,j] = in[i,j, k]
+    parfor ij:
+        if not some_field[i,j,k] > 0:
+            out_else[i,j] = 2 * in[i,j, k]
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            out[i,j,k] = out_if[i,j]
+        if not some_field[i,j,k] > 0:
+            out[i,j,k] = out_else[i,j]
+```
+
+Second iteration: note that we can assume that the condition does not change between :code:`parfor`'s, since :code:`some_field` doesn't change and the conditional expressions is the same.
+
+```python
+for k in range(...):
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            out[i,j,k] = in[i,j, k]
+        if not some_field[i,j,k] > 0:
+            out[i,j,k] = 2 * in[i,j, k]
+
+```
+
+finally, the two remaining branches of the condition are obviously the negation of each other and the condition does again not change, therefore it is valid to write
+
+```python
+for k in range(...):
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            out[i,j,k] = in[i,j, k]
+        else:
+            out[i,j,k] = 2 * in[i,j, k]
+
+```
+</details>
+
+### Nested conditional
+<details>
+For nested conditionals
+
+```python
+with computation(...) with interval(...):
+    if some_field > 0:
+        if some_other_field < 0:
+            out = some_field
+        else:
+            out = some_other_field:
+    else:
+        out = in
+```
+
+translates to
+
+```python
+for k in range(...):
+    #preparing outer conditional
+    parfor ij:
+        some_field_mask[i,j] = some_field[i,j,k] > 0
+    parfor ij:
+        some_field_if[i,j] = some_field[i,j,k]
+        some_other_field_if[i,j] = some_other_field[i,j,k]
+        in_else = in
+    #computations of if branch
+    ##preparing inner conditional
+    parfor ij:
+        some_other_field_mask[i,j] = some_other_field_if[i,j,k] < 0
+    parfor ij:
+        some_field_if_if[i,j] = some_field_if[i,j]
+        some_other_field_if_else[i,j] = some_other_field_if[i,j]
+    ##computations of if-if branch
+    parfor ij:
+        if some_field_mask[i,j]:
+            if some_other_field_mask[i,j]:
+                out_if_if[i,j] = some_field_if_if[i,j]
+    ##computations of if-else branch
+    parfor ij:
+        if some_field_mask[i,j]:
+            if not some_other_field_mask[i,j]:
+                out_if_else[i,j] = some_other_field_if_else[i,j]
+    ##commiting writes of inner conditional
+    parfor ij:
+        if some_field_mask[i,j]:
+            if some_other_field_mask[i,j]:
+                out_if[i,j] = out_if_if[i,j]
+            else:
+                out_if[i,j]= out_if_else[i,j]
+    #computations of else branch
+    parfor ij:
+        if not some_field_mask[i,j]:
+            out_else[i,j] = in_else[i,j]
+    #commiting writes of outer conditional
+    parfor ij:
+        if some_field_mask[i,j]:
+            out[i,j,k] = out_if[i,j]
+        else:
+            out[i,j,k] = out_else[i,j]
+```
+
+First Iteration: inline some_field_mask, some_field_if, some_other_field_if, in_else
+```python
+for k in range(...):
+    #computations of if branch
+    ##preparing inner conditional
+    parfor ij:
+        some_other_field_mask[i,j] = some_other_field[i,j,k] < 0
+    parfor ij:
+        some_field_if_if[i,j] = some_field[i,j,k]
+        some_other_field_if_else[i,j] = some_other_field[i,j,k]
+    ##computations of if-if branch
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            if some_other_field_mask[i,j]:
+                out_if_if[i,j] = some_field_if_if[i,j]
+    ##computations of if-else branch
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            if not some_other_field_mask[i,j]:
+                out_if_else[i,j] = some_other_field_if_else[i,j]
+    ##commiting writes of inner conditional
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            if some_other_field_mask[i,j]:
+                out_if[i,j] = out_if_if[i,j]
+            else:
+                out_if[i,j]= out_if_else[i,j]
+    #computations of else branch
+    parfor ij:
+        if not some_field[i,j,k] > 0:
+            out_else[i,j] = in_else[i,j]
+    #commiting writes of outer conditional
+    parfor ij:
+        if some_field[i,j,k] > 0:
+            out[i,j,k] = out_if[i,j]
+        else:
+            out[i,j,k] = out_else[i,j]
+```
+
+Second iteration: inline some_other_field_mask, some_field_if_if, some_other_field_if_else
+```python
+for k in range(...):
+    #computations of if branch
+    ##computations of if-if branch
+    parfor ij:
+        if some_field > 0:
+            if some_other_field < 0:
+                out_if_if = some_field
+    ##computations of if-else branch
+    parfor ij:
+        if some_field > 0:
+            if not some_other_field < 0:
+                out_if_else = some_other_field
+    ##commiting writes of inner conditional
+    parfor ij:
+        if some_field > 0:
+            if some_other_field < 0:
+                out_if = out_if_if
+            else:
+                out_if = out_if_else
+    #computations of else branch
+    parfor ij:
+        if not some_field > 0:
+            out_else = in
+    #commiting writes of outer conditional
+    parfor ij:
+        if some_field > 0:
+            out = out_if
+        else:
+            out = out_else
+```
+
+Third iteration: inline out_if_if, out_if_else
+```python
+for k in range(...):
+    #computations of if branch
+    ##commiting writes of inner conditional
+    parfor ij:
+        if some_field > 0:
+            if some_other_field < 0:
+                out_if = some_field
+            else:
+                out_if = some_other_field
+    #computations of else branch
+    parfor ij:
+        if not some_field > 0:
+            out_else = in
+    #commiting writes of outer conditional
+    parfor ij:
+        if some_field > 0:
+            out = out_if
+        else:
+            out = out_else
+```
+
+Fourth iteration: inline out_if, out_else
+```python
+for k in range(...):
+    #commiting writes of outer conditional
+    parfor ij:
+        if some_field > 0:
+            if some_other_field < 0:
+                out = some_field
+            else:
+                out = some_other_field
+        else:
+            out = in
+```
+</details>
+
+### Ternary-like conditional: The Fuse-and-demote approach:
+
+<details>
+```python
+with computation(...) with interval(...):
+    if some_field > 0:
+        out = in
+    else:
+        out = 2*in
+```
+
+which translates to
+
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+    parfor ij:
+        in_if[i, j] = in[i, j, k]
+        in_else[i, j] = in[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            out_if[i, j] = in_if[i, j]
+    parfor ij:
+        if not some_field_mask:
+            out_else[i, j] = 2 * in_else[i, j]
+    parfor ij:
+        if some_field_mask:
+            out[i, j, k] = out_if[i, j]
+        else:
+            out[i, j, k] = out_else[i, j]
+```
+strategy: greedily fuse parfrors, top-to-bottom, if legal. then, turn unneeded temporaries into variables, and leave it to the compiler to get it right. (should be optimal in terms of non-register loads.)
+
+1. fusion: legal since no race condition (`in` is only read)
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        in_if[i, j] = in[i, j, k]
+        in_else[i, j] = in[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            out_if[i, j] = in_if[i, j]
+    parfor ij:
+        if not some_field_mask:
+            out_else[i, j] = 2 * in_else[i, j]
+    parfor ij:
+        if some_field_mask:
+            out[i, j, k] = out_if[i, j]
+        else:
+            out[i, j, k] = out_else[i, j]
+```
+2. fusion: legal although read adn write in in_f, since no offset.
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        in_if[i, j] = in[i, j, k]
+        in_else[i, j] = in[i, j, k]
+        if some_field_mask[i, j]:
+            out_if[i, j] = in_if[i, j]
+    parfor ij:
+        if not some_field_mask:
+            out_else[i, j] = 2 * in_else[i, j]
+    parfor ij:
+        if some_field_mask:
+            out[i, j, k] = out_if[i, j]
+        else:
+            out[i, j, k] = out_else[i, j]
+
+3. fusion: legal although read adn write in in_else, since no offset.
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        in_if[i, j] = in[i, j, k]
+        in_else[i, j] = in[i, j, k]
+        if some_field_mask[i, j]:
+            out_if[i, j] = in_if[i, j]
+        if not some_field_mask[i, j]:
+            out_else[i, j] = 2 * in_else[i, j]
+    parfor ij:
+        if some_field_mask:
+            out[i, j, k] = out_if[i, j]
+        else:
+            out[i, j, k] = out_else[i, j]
+4. fusion: legal although read adn write in out_if and out_else, since no offset.
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        in_if[i, j] = in[i, j, k]
+        in_else[i, j] = in[i, j, k]
+        if some_field_mask[i, j]:
+            out_if[i, j] = in_if[i, j]
+        if not some_field_mask[i, j]:
+            out_else[i, j] = 2 * in_else[i, j]
+        if some_field_mask:
+            out[i, j, k] = out_if[i, j]
+        else:
+            out[i, j, k] = out_else[i, j]
+```
+
+all temporary fields are only used locally, and not read/written at offset, can therefore be scalars:
+```python
+for k in range(...):
+    parfor ij:
+        some_field_mask[0] = some_field[i, j, k] > 0
+        in_if[0] = in[i, j, k]
+        in_else[0] = in[i, j, k]
+        if some_field_mask[0]:
+            out_if[0] = in_if[0]
+        if not some_field_mask[0]:
+            out_else[0] = 2 * in_else[0]
+        if some_field_mask[0]:
+            out[i, j, k] = out_if[0]
+        else:
+            out[i, j, k] = out_else[0]
+```
+since all conditions are now unmodified scalars (could be declared `const`, that are defined in the same scope and only maybe negated, a compiler should be able to generate efficient code from this.
+</details>
+
+### Eddie's Example: Linus'attempt
+<details>
+
+The previous examples don't illustrate the necessity of the parfor around each statement.
+Here is "Eddie's example"
+
+```python
+with computation(...) with interval(...):
+    tmp = 0
+    if some_field > 0:
+        tmp = inout
+        inout = tmp[-1, 0, 0]
+```
+
+which translates to
+
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+    parfor ij:
+        inout_if[i, j] = inout[i, j, k]
+        tmp_if[i, j] = tmp[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            tmp_if[i, j] = inout_if[i, j]
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout_if[i, j] = tmp_if[i-1, j] # TODO here is a version name mistake if it should be a general algorithm
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+
+First iteration: inline temporary some_field_mask, tmp (but can't remove tmp write yet due to uninitialized remaining values)
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+    parfor ij:
+        inout_if = inout
+        tmp_if = 0
+    parfor ij:
+        if some_field[i, j, k] > 0
+            tmp_if = inout_if
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout_if[i, j, k] = tmp_if[i-1, j]
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+
+remove shadowed write to tmp
+```python
+for k in range(...):
+    parfor ij:
+        inout_if = inout
+    parfor ij:
+        if some_field[i, j, k] > 0
+            tmp_if = inout_if
+        else:
+            tmp_if = 0
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout_if[i, j, k] = tmp_if[i-1, j]
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+        else:
+            tmp[i, j, k] = 0
+```
+
+Inline the first read of inout_if, since all later reads are shadowed.
+
+```python
+for k in range(...):
+    parfor ij:
+        if some_field[i, j, k] > 0
+            tmp_if = inout
+        else:
+            tmp_if = 0
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout_if[i, j, k] = tmp_if[i-1, j]
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+        else:
+            tmp[i, j, k] = 0
+```
+inline tmp_if (can not fully inline it since otherwise inout conflicts in final parfor, therefore also hafe to keep the initial write.)
+```python
+for k in range(...):
+    parfor ij:
+        if some_field[i, j, k] > 0
+            tmp_if = inout
+        else:
+            tmp_if = 0
+    parfor ij:
+        if some_field[i, j, k] > 0
+            if some_field[i-1, j, k] > 0:
+                inout_if[i, j, k] = inout[i-1, j]
+            else:
+                inout_if[i, j, k] = 0
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+        else:
+            tmp[i, j, k] = 0
+```
+
+This one's a bit tricky: we can remove the first condition, since
+    (1)the else-case is never read and
+    (2)the if-case is always protected by the same condition, BUT shifted accordingly
+
+```python
+for k in range(...):
+    parfor ij:
+        tmp_if = inout
+
+    parfor ij:
+        if some_field[i, j, k] > 0
+            if some_field[i-1, j, k] > 0:
+                inout_if[i, j, k] = tmp_if[i-1, j]
+            else:
+                inout_if[i, j, k] = 0
+
+    parfor ij:
+        if some_field[i, j, k] > 0
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+        else:
+            tmp[i, j, k] = 0
+```
+
+
+inline inout_if: it is written under the same conditions that it is read later.
+
+```python
+for k in range(...):
+    parfor ij:
+        tmp_if = inout
+    parfor ij:
+        if some_field[i, j, k] > 0
+            if some_field[i-1, j, k] > 0:
+                inout[i, j, k] = tmp_if[i-1, j]
+            else:
+                inout[i, j, k] = 0
+            tmp[i, j, k] = tmp_if[i, j]
+        else:
+            tmp[i, j, k] = 0
+```
+
+
+If we assume that tmp is not API, we can remove the final write since it is not used after:
+```python
+for k in range(...):
+    parfor ij:
+        tmp_if = inout
+    parfor ij:
+        if some_field[i, j, k] > 0
+            if some_field[i-1, j, k] > 0
+                inout[i, j, k] = tmp_if[i-1, j]
+            else:
+                inout[i, j, k] = 0
+```
+</details>
+### Eddie's Example: The fuse-and-demote approach
+
+<details>
+The previous examples don't illustrate the necessity of the parfor around each statement.
+Here is "Eddie's example"
+
+```python
+with computation(...) with interval(...):
+    tmp = 0
+    if some_field > 0:
+        tmp = inout
+        inout = tmp[-1, 0, 0]
+```
+
+which translates to
+
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+    parfor ij:
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+    parfor ij:
+        inout_if[i, j] = inout[i, j, k]
+        tmp_if[i, j] = tmp[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            tmp_if[i, j] = inout_if[i, j]
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout_if[i, j] = tmp_if[i-1, j] # TODO here is a version name mistake if it should be a general algorithm
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+1. fusion: trivial
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+    parfor ij:
+        inout_if[i, j] = inout[i, j, k]
+        tmp_if[i, j] = tmp[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            tmp_if[i, j] = inout_if[i, j]
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout_if[i, j] = tmp_if[i-1, j] # TODO here is a version name mistake if it should be a general algorithm
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+2. fusion: tmp no offset.
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        inout_if[i, j] = inout[i, j, k]
+        tmp_if[i, j] = tmp[i, j, k]
+    parfor ij:
+        if some_field_mask[i, j]:
+            tmp_if[i, j] = inout_if[i, j]
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout_if[i, j] = tmp_if[i-1, j] # TODO here is a version name mistake if it should be a general algorithm
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+3. fusion: inout_if  no offset, tmp_if only overwrites..
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        inout_if[i, j] = inout[i, j, k]
+        tmp_if[i, j] = tmp[i, j, k]
+        if some_field_mask[i, j]:
+            tmp_if[i, j] = inout_if[i, j]
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout_if[i, j] = tmp_if[i-1, j] # TODO here is a version name mistake if it should be a general algorithm
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+the next fusion will skip the first parfor, since it would lead to a conflict in tmp_if.
+4. fusion: the second parfors can be fused though, since tmp_if is not modified, all others have no offset.
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        inout_if[i, j] = inout[i, j, k]
+        tmp_if[i, j] = tmp[i, j, k]
+        if some_field_mask[i, j]:
+            tmp_if[i, j] = inout_if[i, j]
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout_if[i, j] = tmp_if[i-1, j] # TODO here is a version name mistake if it should be a general algorithm
+        if some_field_mask[i, j]:
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+now, `some_field_mask`, `tmp_if` and `inout_if` can't be variables since they are communicated from the first parfor to the second.
+
+```python
+for k in range(...):
+    parfor ij:
+        tmp[i, j, k] = 0
+        some_field_mask[i, j] = some_field[i, j, k] > 0
+        inout_if[i, j] = inout[i, j, k]
+        tmp_if[i, j] = tmp[i, j, k]
+        if some_field_mask[i, j]:
+            tmp_if[i, j] = inout_if[i, j]
+    parfor ij:
+        if some_field_mask[i, j]:
+            inout_if[i, j] = tmp_if[i-1, j] # TODO here is a version name mistake if it should be a general algorithm
+        if some_field_mask[i, j]:
+            inout[i, j, k] = inout_if[i, j]
+            tmp[i, j, k] = tmp_if[i, j]
+```
+let's try to inline some non-conditional cases:
+```python
+for k in range(...):
+    parfor ij:
+        if some_field[i, j, k] > 0:
+            tmp_if[i, j] = inout[i, j, k]
+        else:
+            tmp_if[i, j] = 0
+    parfor ij:
+        if some_field[i, j, k] > 0:
+            if some_field[i, j, k] > 0:
+                inout[i, j, k] = tmp_if[i-1, j]
+```
+</details>
+
+#### used trafos:
+
+1) Inline temporary
+
+    Matches:
+    * A write statement to a temporary value. it can be split into multiple writes by(inner) conditions, where the write occurs in all branches.
+    * the write can further be inside an (outer) condition
+    * A read statement after such a write statement, without an intermediate write to any gridpoint,
+    * if there is an outer condition around the write, the read must be protected under the same condition, meaning the same statement and the involved values haven't changed in between.
+    * The target of the read statement does not appear with an offset in the value of the write statement. (otherwise race condition)
+
+    Actions:
+
+    1. replace all reads of the temporary by the value found in the write statement, possibly inserting  conditionals. if the read is at a different offset than the write, also shift the condition by the same offset.
+    3. if all reads have been removed, or the entire field is guaranteed to be overwritten before the next read, remove write as well
+
+2) remove writes that are shadowed by a condition
+
+    Matches:
+    * two writes to same field, where the later modifies a subset of gridpoints that are written to by the first, due to a condition around the second
+    * the value is not read in between the two writes.
+
+    Actions:
+
+    1. remove the first write, and move it to the else (or if) branch of the second.
+
+
+
+### Nested conditional - Modified (Mauro)
+
+<details>
+For nested conditionals
+
+```python
+@gtscript.stencil
+def stencil(in, out, some_field, some_other_field):
+with computation(...) with interval(...):
+    if some_field > 0:
+        some_other_field *= -1;
+        if some_other_field < 0:
+            out = some_field
+        else:
+            out = some_other_field
+    else:
+        out = in
+```
+
+just renaming first:
+
+```python
+    some_field_mask = some_field > 0
+    some_field_if = some_field
+    some_other_field_if = some_other_field # no need for some_other_field_else since it is not written there
+    out_if = out
+    out_else = out
+    in_else = in
+    if some_field_mask:
+        some_other_field_if *= -1;
+        some_other_field_if_mask = some_other_field_if < 0
+        some_other_field_if_if = some_other_field_if # these are 2D to 2D, not 3D to 2D as the outer ones
+        some_field_if_if = some_field_if
+        out_if_if = out_if
+        out_if_else = out_if
+        if some_other_field_if_mask:
+            out_if_if = some_field_if_if
+        else:
+            out_if_else = some_other_field_if_if
+        if some_other_field_if_mask:
+            out_if = out_if_if
+        else
+            out_if = out_if_else
+    else:
+        out_else = in_else
+
+    if some_field_mask:
+       some_other_field = some_other_field_if
+
+    if some_field_mask:
+       out = out_if
+    else:
+       out = out_else
+
+```
+
+Now we can optimize as usual starting from the innermost scope.
+
+1) `some_field` is not changed
+
+```python
+    some_field_mask = some_field > 0
+    some_field_if = some_field
+    some_other_field_if = some_other_field
+    out_if = out
+    out_else = out
+    in_else = in
+    if some_field_mask:
+        some_other_field_if *= -1;
+        some_other_field_if_mask = some_other_field_if < 0
+        some_other_field_if_if = some_other_field_if # these are 2D to 2D, not 3D to 2D as the outer ones
+        out_if_if = out_if
+        out_if_else = out_if
+        if some_other_field_if_mask:
+            out_if_if = some_field_if
+        else:
+            out_if_else = some_other_field_if_if
+        if some_other_field_if_mask:
+            out_if = out_if_if
+        else
+            out_if = out_if_else
+    else:
+        out_else = in_else
+
+    if some_field_mask:
+       some_other_field = some_other_field_if
+
+    if some_field_mask:
+       out = out_if
+    else:
+       out = out_else
+
+```
+
+2) `some_other_field_if_if` is not modified either
+
+```python
+    some_field_mask = some_field > 0
+    some_field_if = some_field
+    some_other_field_if = some_other_field
+    out_if = out
+    out_else = out
+    in_else = in
+    if some_field_mask:
+        some_other_field_if *= -1;
+        some_other_field_if_mask = some_other_field_if < 0
+        out_if_if = out_if
+        out_if_else = out_if
+        if some_other_field_if_mask:
+            out_if_if = some_field_if
+        else:
+            out_if_else = some_other_field_if
+        if some_other_field_if_mask:
+            out_if = out_if_if
+        else
+            out_if = out_if_else
+    else:
+        out_else = in_else
+
+    if some_field_mask:
+       some_other_field = some_other_field_if
+
+    if some_field_mask:
+       out = out_if
+    else:
+       out = out_else
+
+```
+
+3) `some_field` is not changed, so inlining the mask is ok, and also `some_field_if` is not needed. Also `in` is not modified and can be inlined/
+
+```python
+    some_other_field_if = some_other_field
+    out_if = out
+    out_else = out
+    if some_field > 0 :
+        some_other_field_if *= -1;
+        some_other_field_if_mask = some_other_field_if < 0
+        out_if_if = out_if
+        out_if_else = out_if
+        if some_other_field_if_mask:
+            out_if_if = some_field
+        else:
+            out_if_else = some_other_field_if
+        if some_other_field_if_mask:
+            out_if = out_if_if
+        else
+            out_if = out_if_else
+    else:
+        out_else = in
+
+    if some_field > 0:
+       some_other_field = some_other_field_if
+
+    if some_field > 0 :
+       out = out_if
+    else:
+       out = out_else
+
+```
+4) `out_if_if` and `out_if_else` are complementary, and `out_else` is complementary to those two
+
+```python
+    some_other_field_if = some_other_field
+    out_if = out
+    out_else = out
+    if some_field > 0 :
+        some_other_field_if *= -1;
+        some_other_field_if_mask = some_other_field_if < 0
+        if some_other_field_if_mask:
+            out_if = some_field
+        else:
+            out_if = some_other_field_if
+    else:
+        out_else = in
+
+    if some_field > 0:
+       some_other_field = some_other_field_if
+
+    if some_field > 0 :
+       out = out_if
+    else:
+       out = out_else
+
+```
+
+5) `out_if` and `out_else` are complementary
+
+```python
+    some_other_field_if = some_other_field
+    if some_field > 0 :
+        some_other_field_if *= -1
+        some_other_field_if_mask = some_other_field_if < 0
+        if some_other_field_if_mask:
+            out = some_field
+        else:
+            out = some_other_field_if
+    else:
+        out = in
+
+    if some_field > 0:
+       some_other_field = some_other_field_if
+```
+
+5.1) If we did not have `some_other_field_if *= -1` same result as Linus!
+```python
+    if some_field > 0 :
+        if some_other_field < 0:
+            out = some_field
+        else:
+            out = some_other_field
+    else:
+        out = in
+    ```
+</details>
