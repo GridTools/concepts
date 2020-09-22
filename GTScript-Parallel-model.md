@@ -8,7 +8,7 @@ The principles are not magic, they mainly summarize the obvious.
 Trivia: GTScript is an embedded DSL in Python, therefore language syntax is restricted to valid Python syntax.
 
 1. **Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
-   in Python or well-known Python libraries (e.g. Numpy).**
+   in Python or well-known Python libraries (e.g. NumPy).**
 
    Motivation: The DSL should be readable by applying common sense and common programming language knowledge.
 
