@@ -48,7 +48,7 @@ The effect of the program is as if statements are executed as follows:
 - every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
 - every _statement_ inside the _interval_ is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
 
-#### Example
+### Example
 
 On an applied example (by definition `start <= end`):
 
@@ -104,11 +104,11 @@ parfor k in range(start, end):
 
 where `parfor` implies no guarantee on the order of execution.
 
-### Variable declarations
+## Variable declarations
 
 Variable declarations inside a computation are interpreted as temporary field declarations spanning the actual computation domain of the `computation` where they are defined.
 
-#### Example
+### Example
 
 ```python
 with computation(FORWARD):
@@ -125,11 +125,11 @@ for k in range(0, 3):
         tmp[i, j, k] = 3   # Only this vertical range is properly initialized
 ```
 
-### Compute Domain
+## Compute Domain
 
 The computation domain of every statement is extended to ensure that any required data to execute all stencil statements on the compute domain is present.
 
-#### Example
+### Example
 
 On an applied example, this means:
 
