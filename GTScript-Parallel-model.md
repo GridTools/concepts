@@ -81,6 +81,8 @@ for k:
         a = tmp_b
 ```
 
+</td></tr></table>
+
 which reflects principle 4, the translation to parallel code is unambigous.
 Note: Removing the (in this case) unneeded temporary is up to optimization.
 
