@@ -97,6 +97,7 @@ simplicity and to avoid distraction from the important aspects.
 In the following, `k <= K`,
 
 **no specific loop order in k**
+
 ```python
 with computation(...):
     with interval(k, K):
@@ -113,22 +114,24 @@ b[i:I, j:J, k:K] = 2 * a[i:I, j:J, k:K]
 ```
 
 **forward iteration in k**
+
 ```python
 with computation(FORWARD):
     with interval(k, K):
         a = tmp[1, 1, 0]
         b = 2 * a[1, 1, 0]
 ```
+
 behaves like
+
 ```python
 for k in range(k, K):
-    parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]
-    parfor ij:
-        b[i, j, k] = 2 * a[i+1, i+1, k]
+    a[i:I+1, j:J+1, k:K] = tmp[i+1:I+2, j+1:J+2, k:K] # extended compute domain
+    b[i:I, j:J, k:K] = 2 * a[i+1:I+1, j+1:J+1, k:K]
 ```
 
 **backward computation in k with interval specialization**
+
 ```python
 with computation(BACKWARD):
     with interval(k, -2):  # lower interval
@@ -139,7 +142,7 @@ with computation(BACKWARD):
         b = 2.2
 ```
 
-corresponds to the following pseudo-code:
+behaves like
 
 ```python
 # upper interval
