@@ -134,10 +134,10 @@ for k in range(k, K):
 
 ```python
 with computation(BACKWARD):
-    with interval(k, -2):  # lower interval
+    with interval(k, -2): # lower interval
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
-    with interval(-2, K):    # upper interval
+    with interval(-2, K): # upper interval
         a = 1.1
         b = 2.2
 ```
@@ -145,21 +145,18 @@ with computation(BACKWARD):
 behaves like
 
 ```python
-# upper interval
-for k in reversed(range(K-2, K)):
-    parfor ij:
-        a[i, j, k] = 1.1
-    parfor ij:
-        b[i, j, k] = 2.2
-# lower interval
-for k in reversed(range(k, K-2)):
+for k in reversed(range(K-2, K)): # upper interval
+    a[i:I, j:J, k:K] = 1.1
+    b[i:I, j:J, k:K] = 2.2
+
+for k in reversed(range(k, K-2)): # lower interval
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
         b[i, j, k] = 2 * a[i, j, k]
 ```
 
-where `parfor` implies no guarantee on the order of execution.
+Note that intervals where exchanged to match the loop order.
 
 <table><tr>
 <td><details><summary>NumPy style</summary>
