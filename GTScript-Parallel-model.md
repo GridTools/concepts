@@ -47,7 +47,7 @@ The effect of the program is as if statements are executed as follows:
 2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
 3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
 4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
-5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [Conditionals](#conditionals)
+5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [Conditionals](#conditionals).
 
 ### Example
 
@@ -97,6 +97,21 @@ simplicity and to avoid distraction from the important aspects.
 In the following, `k <= K`,
 
 ```python
+with computation(...):  # no specific loop order in k
+    with interval(k, K):
+        a = tmp[1, 1, 0]
+```
+
+behaves like
+
+```
+parfor k in range(k, K):
+    parfor ij:
+        a[i, j, k] = tmp[i+1, j+1, k]
+    parfor ij:
+        b[i, j, k] = 2 * a[i, j, k]
+        b = 2 * a[0, 0, 0]
+
 with computation(FORWARD):  # Forward computation
     with interval(k, K):
         a = tmp[1, 1, 0]
@@ -109,11 +124,6 @@ with computation(BACKWARD):  # Backward computation
     with interval(-2, K):    # upper interval
         a = 1.1
         b = 2.2
-
-with computation(PARALLEL):  # Parallel computation
-    with interval(k, K):
-        a = tmp[1, 1, 0]
-        b = 2 * a[0, 0, 0]
 ```
 
 corresponds to the following pseudo-code:
@@ -135,13 +145,6 @@ for k in reversed(range(K-2, K)):
         b[i, j, k] = 2.2
 # lower interval
 for k in reversed(range(k, K-2)):
-    parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]
-    parfor ij:
-        b[i, j, k] = 2 * a[i, j, k]
-
-# Parallel computation
-parfor k in range(k, K):
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
