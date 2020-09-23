@@ -202,33 +202,24 @@ for k in range(k, end):
 
 GTScript supports 2 kinds of conditionals:
 
-- conditionals on scalar expressions or compile-time constants
-- conditionals on field expressions (meaning a condition on the field value at the gridpoint of the current iteration or at a local offset of it)
+- conditionals on scalar expressions
+- conditionals on field expressions
 
-### Conditionals on scalar expressions or compile-time constants
+### Conditionals on scalar expressions
 
-- Conditions in `if` statements are evaluated at run-time and are required to be of scalar type, e.g. scalar variables (not fields) or scalar expressions (no fields involved).
-- Each statement inside the if and else branches is executed as a `parfor` loop (same as statements outside of branches).
+- Each statement inside the if and else branches is executed according to the same rules as statements outside of branches.
 - There is no restriction on the body of the statement.
-- For consistency sake with the following we use the condition inside the loop as a concept (the implementation detail to not do this should not matter here)
 
-Rationale:
-
-- Adding an `if True:` does not change the behavior at all.
-- The way the programmer thinks about execution is the same if within an if or not.
-- This makes function calls and scoped code behave the same.
-
-### Example
+**Example for scalar conditions**
 
 ```python
-with computation():
-    with interval(...):
-        if my_config_var:
-            a = 1
-            b = 2
-        else:
-            a = 2
-            b = 1
+with computation() with interval(...):
+    if my_config_var:
+        a = 1
+        b = 2
+    else:
+        a = 2
+        b = 1
 ```
 
 translates to:
