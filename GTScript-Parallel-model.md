@@ -37,20 +37,51 @@ Trivia: GTScript is an embedded DSL in Python, therefore language syntax is rest
 
 # Parallel Model
 
+## Variable declarations
+
 The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
 
-A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an interation policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
+A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an iteration policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
 
 The effect of the program is as if statements are executed as follows:
 
-- _computations_ are executed sequentially in the order they appear in the code,
-- vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
-- every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-- every _statement_ inside the _interval_ is executed as a parallel for-loop over the horizontal dimension(s) with no guarantee on the order.
+1. _computations_ are executed sequentially in the order they appear in the code,
+2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
+3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
+4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
+5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above.
 
 ### Example
 
-On an applied example (by definition `start <= end`):
+In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
+the important parts.
+
+**Rule 4**
+
+```python
+with computation(...):
+    with interval(...):
+        a = b
+```
+
+translates to
+
+```python
+for k:
+    tmp_b: IJField
+    parfor ij:
+        tmp_b = b
+    parfor ij:
+        a = tmp_b
+```
+
+which reflects principle 4, the translation to parallel code is unambigous.
+Note: Removing the (in this case) unneeded temporary is up to optimization.
+
+In the following examples, the translation of each right hand side to an intermediate temporary is implicit for
+simplicity and to avoid distraction from the important aspects.
+
+In the following, `start <= end`,
 
 ```python
 with computation(FORWARD):  # Forward computation
@@ -59,10 +90,10 @@ with computation(FORWARD):  # Forward computation
         b = 2 * a[1, 1, 0]
 
 with computation(BACKWARD):  # Backward computation
-    with interval(start, -2):  # interval A
+    with interval(start, -2):  # lower interval
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
-    with interval(-2, end):    # interval B
+    with interval(-2, end):    # upper interval
         a = 1.1
         b = 2.2
 
@@ -83,12 +114,14 @@ for k in range(start, end):
         b[i, j, k] = 2 * a[i+1, i+1, k]
 
 # Backward computation
-for k in reversed(range(end-2, end)):    # interval B
+# upper interval
+for k in reversed(range(end-2, end)):
     parfor ij:
         a[i, j, k] = 1.1
     parfor ij:
         b[i, j, k] = 2.2
-for k in reversed(range(start, end-2)):  # interval A
+# lower interval
+for k in reversed(range(start, end-2)):
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
@@ -104,7 +137,81 @@ parfor k in range(start, end):
 
 where `parfor` implies no guarantee on the order of execution.
 
-## Variable declarations
+<table><tr>
+<td><details><summary>NumPy style</summary>
+
+```python
+# Domain definition
+# i, I = domain_start_i, domain_end_i
+# j, J = domain_start_j, domain_end_j
+
+# Forward computation
+for k in range(start, end):
+    a[i:I, j:J, k] = tmp[i+1:I+1, j:J, k]
+    b[i:I, j:J, k] = 2 * a[i+1:I+1, j+1:J+1, k]
+
+# Backward computation
+# upper interval
+for k in reversed(range(end-2, end)):
+    a[i:I, j:J, k] = 1.1
+    b[i:I, j:J, k] = 2.2
+# lower interval
+for k in reversed(range(start, end-2)):
+    a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
+    b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
+
+# Parallel computation
+for k in random.shuffle(range(start, end)):
+    a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
+    b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
+```
+
+</details></td>
+<td><details><summary>C++ style</summary>
+
+```cpp
+# Forward computation
+for (int k=0; k < end; k++) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = tmp[i+1, j+1, k]
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2 * a[i+1, i+1, k]
+    }
+}
+
+# Backward computation
+# upper interval
+for (int k=end-1; k >= end-2; k--) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = 1.1
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2.2
+    }
+# lower interval
+for (int k=end-2; k >= 0; k--) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = tmp[i+1, j+1, k]
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2 * a[i, j, k]
+    }
+
+# Parallel computation
+parallel_for (int k=0; k < end; k++) {
+    parallel_for (auto& i, j : ij_domain()) {
+        a[i, j, k] = tmp[i+1, j+1, k]
+    }
+    parallel_for (auto& i, j : ij_domain()) {
+        b[i, j, k] = 2 * a[i, j, k]
+    }
+```
+
+where `parallel_for` implies no guarantee on the order of execution.
+
+</details></td>
+</tr></table>
 
 Variable declarations inside a computation are interpreted as temporary field declarations spanning the actual computation domain of the `computation` where they are defined.
 
