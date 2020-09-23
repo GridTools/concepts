@@ -284,8 +284,7 @@ The following case is illegal:
 ```python
 with computation():
     with interval(...):
-        tmp: Field[[I, J, K], float] = 1
-        if tmp == 1: # tmp is a temporary field
+        if field:
             a = 1
             b = a[1, 0, 0] # we read and write a
 ```
