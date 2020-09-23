@@ -173,8 +173,7 @@ behaves like:
 ```python
 tmp = Field(domain_shape)  # Uninitialized field (random data)
 for k in range(0, 3):
-    parfor ij:
-        tmp[i, j, k] = 3   # Only this vertical range is properly initialized
+    tmp[i:I, j:J, k] = 3   # Only this vertical range is properly initialized
 ```
 
 ## Compute Domain
