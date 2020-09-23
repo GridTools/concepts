@@ -185,7 +185,7 @@ The computation domain of every statement is extended to ensure that any require
 On an applied example, this means:
 
 ```python
-with computation(PARALLEL), interval(...):
+with computation(...), interval(...):
     u = 1
     b = u[-2, 0, 0] + u[1, 0, 0] + u[0, -1, 0] + u[0, -2, 0]
 ```
