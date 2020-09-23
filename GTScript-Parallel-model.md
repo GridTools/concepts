@@ -7,33 +7,33 @@ The principles are not magic, they mainly summarize the obvious.
 
 Trivia: GTScript is an embedded DSL in Python, therefore language syntax is restricted to valid Python syntax.
 
-a. **Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
-in Python or well-known Python libraries (e.g. NumPy).**
+1. **Language constructs should behave the same as their equivalent in other languages, especially as equivalent concepts
+   in Python or well-known Python libraries (e.g. NumPy).**
 
-Motivation: The DSL should be readable by applying common sense and common programming language knowledge.
+   Motivation: The DSL should be readable by applying common sense and common programming language knowledge.
 
-b. **Semantic differences should be reflected in syntactic differences.**
+2. **Semantic differences should be reflected in syntactic differences.**
 
-Motivation: Spotting semantic differences is much harder than spotting syntactic differences.
+   Motivation: Spotting semantic differences is much harder than spotting syntactic differences.
 
-c. **Regular use-cases should be simple, special cases can be complex.**
+3. **Regular use-cases should be simple, special cases can be complex.**
 
-Motivation: If a trade-off has to be made, the most common, standard use-cases should be expressed in the simplest
-possible way. To cover all cases, corner cases might require more complex language constructs.
+   Motivation: If a trade-off has to be made, the most common, standard use-cases should be expressed in the simplest
+   possible way. To cover all cases, corner cases might require more complex language constructs.
 
-d. **Language constructs are required to have an _unambiguous translation to parallel code_ and need to allow translation
-to efficient code _in the regular use-cases_.**
+4. **Language constructs are required to have an _unambiguous translation to parallel code_ and need to allow translation
+   to efficient code _in the regular use-cases_.**
 
-Motivation: When translating DSL to executable code, we must not make correctness errors, therefore we cannot allow
-ambiguous language constructs.
-If we fail,
+   Motivation: When translating DSL to executable code, we must not make correctness errors, therefore we cannot allow
+   ambiguous language constructs.
+   If we fail,
 
-- the user will run into hard to debug problems,
-- the toolchain developer cannot reason about the code and will fail in writing correct optimizations.
+   - the user will run into hard to debug problems,
+   - the toolchain developer cannot reason about the code and will fail in writing correct optimizations.
 
-On purpose, performance is second and, on purpose, the requirement to produce efficient code is restricted to regular use-cases. Obviously, for a performance portable language, the regular use-cases are required to have an
-efficient translation. But this principle acknowledges that we cannot exclude that for some special cases an
-efficient translation cannot be found.
+   On purpose, performance is second and, on purpose, the requirement to produce efficient code is restricted to regular use-cases. Obviously, for a performance portable language, the regular use-cases are required to have an
+   efficient translation. But this principle acknowledges that we cannot exclude that for some special cases an
+   efficient translation cannot be found.
 
 # Parallel Model
 
