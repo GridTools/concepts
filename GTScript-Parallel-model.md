@@ -54,10 +54,10 @@ The effect of the program is as if statements are executed as follows:
 In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
 the important parts. The domain is defined by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
 
-\*Note: Temporarily, we will use 2 different notations to illustrate parallel behavior, we will use
+_Note: Temporarily, we will use 2 different notations to illustrate parallel behavior, we will use
 (a) a pseudocode notation where `parfor ij` describes a parallel for loop over the `i` and `j` dimensions;
 (b) NumPy notation.
-Before merging this PR we should decide for one of the 2 notations.\*
+Before merging this PR we should decide for one of the 2 notations._
 
 - **Rule 4**
 
