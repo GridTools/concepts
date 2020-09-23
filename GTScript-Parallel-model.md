@@ -52,9 +52,14 @@ The effect of the program is as if statements are executed as follows:
 ### Example
 
 In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
-the important parts. The domain is described by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
+the important parts. The domain is defined by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
 
-**Rule 4**
+\*Note: Temporarily, we will use 2 different notations to illustrate parallel behavior, we will use
+(a) a pseudocode notation where `parfor ij` describes a parallel for loop over the `i` and `j` dimensions;
+(b) NumPy notation.
+Before merging this PR we should decide for one of the 2 notations.
+
+- **Rule 4**
 
 ```python
 with computation(...):
@@ -63,6 +68,9 @@ with computation(...):
 ```
 
 translates to
+
+<table><tr>
+<td><details><summary>NumPy style</summary>
 
 ```python
 for k:
