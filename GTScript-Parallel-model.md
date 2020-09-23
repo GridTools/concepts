@@ -245,7 +245,7 @@ for k in range(k, K):
 
 - The condition is evaluated for all gridpoints and stored in a mask.
 - Each statement inside the if and else branches is executed according to the same rules as statements outside of branches.
-- Inside the if and else blocks the same field cannot be written to **and** read with an offset (order does not matter).
+- Inside the if and else blocks the same field cannot be written to **and** read with an offset in the parallel axises (order does not matter).
 
 **Example for conditionals on field expressions**
 
