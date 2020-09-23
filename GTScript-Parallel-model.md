@@ -279,7 +279,7 @@ for k in range(start, end):
             b[i, j, k] = 1
 ```
 
-The following case is illegal:
+The following cases are illegal:
 
 ```python
 with computation():
@@ -287,4 +287,12 @@ with computation():
         if field:
             a = 1
             b = a[1, 0, 0] # we read and write a
+
+with computation():
+    with interval(...):
+        if field:
+            a = 1
+        else:
+            b = a[1, 0, 0] # we read and write a
+`
 ```
