@@ -286,14 +286,15 @@ The following cases are illegal:
 with computation():
     with interval(...):
         if field:
+            b = a[1, 0, 0] # read with an offset from an updated field (a)
             a = 1
-            b = a[1, 0, 0] # we read and write a
+            c = a[0, 1, 0] # read with an offset from an updated field (a)
 
 with computation():
     with interval(...):
         if field:
             a = 1
         else:
-            b = a[1, 0, 0] # we read and write a
+            b = a[1, 0, 0] # read with an offset from an updated field (a)
 `
 ```
