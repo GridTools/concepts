@@ -47,7 +47,7 @@ The effect of the program is as if statements are executed as follows:
 2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
 3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
 4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
-5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above.
+5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [[Conditionals]]
 
 ### Example
 
@@ -94,24 +94,24 @@ Note: Removing the (in this case) unneeded temporary is up to optimization.
 In the following examples, the translation of each right hand side to an intermediate temporary is implicit for
 simplicity and to avoid distraction from the important aspects.
 
-In the following, `start <= end`,
+In the following, `k <= K`,
 
 ```python
 with computation(FORWARD):  # Forward computation
-    with interval(start, end):
+    with interval(k, K):
         a = tmp[1, 1, 0]
         b = 2 * a[1, 1, 0]
 
 with computation(BACKWARD):  # Backward computation
-    with interval(start, -2):  # lower interval
+    with interval(k, -2):  # lower interval
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
-    with interval(-2, end):    # upper interval
+    with interval(-2, K):    # upper interval
         a = 1.1
         b = 2.2
 
 with computation(PARALLEL):  # Parallel computation
-    with interval(start, end):
+    with interval(k, K):
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
 ```
@@ -120,7 +120,7 @@ corresponds to the following pseudo-code:
 
 ```python
 # Forward computation
-for k in range(start, end):
+for k in range(k, K):
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
@@ -128,20 +128,20 @@ for k in range(start, end):
 
 # Backward computation
 # upper interval
-for k in reversed(range(end-2, end)):
+for k in reversed(range(K-2, K)):
     parfor ij:
         a[i, j, k] = 1.1
     parfor ij:
         b[i, j, k] = 2.2
 # lower interval
-for k in reversed(range(start, end-2)):
+for k in reversed(range(k, K-2)):
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
         b[i, j, k] = 2 * a[i, j, k]
 
 # Parallel computation
-parfor k in range(start, end):
+parfor k in range(k, K):
     parfor ij:
         a[i, j, k] = tmp[i+1, j+1, k]
     parfor ij:
@@ -159,22 +159,22 @@ where `parfor` implies no guarantee on the order of execution.
 # j, J = domain_start_j, domain_end_j
 
 # Forward computation
-for k in range(start, end):
+for k in range(k, K):
     a[i:I, j:J, k] = tmp[i+1:I+1, j:J, k]
     b[i:I, j:J, k] = 2 * a[i+1:I+1, j+1:J+1, k]
 
 # Backward computation
 # upper interval
-for k in reversed(range(end-2, end)):
+for k in reversed(range(K-2, K)):
     a[i:I, j:J, k] = 1.1
     b[i:I, j:J, k] = 2.2
 # lower interval
-for k in reversed(range(start, end-2)):
+for k in reversed(range(k, K-2)):
     a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
     b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
 
 # Parallel computation
-for k in random.shuffle(range(start, end)):
+for k in random.shuffle(range(k, K)):
     a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
     b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
 ```
@@ -184,7 +184,7 @@ for k in random.shuffle(range(start, end)):
 
 ```cpp
 # Forward computation
-for (int k=0; k < end; k++) {
+for (int k=0; k < K; k++) {
     parallel_for (auto& i, j : ij_domain()) {
         a[i, j, k] = tmp[i+1, j+1, k]
     }
@@ -264,9 +264,11 @@ with computation(PARALLEL), interval(...):
 translates into the following pseudo code:
 
 ```python
-for k in range(start, end):
+for k in range(k, end):
     parfor [i_start-2:i_end+1, j_start-1:j_end+2]:
         u[i, j, k] = 1
     parfor [i_start:i_end, j_start:j_end]:
         b[i, j, k] = u[i-2,j,k] + u[i+1,j,k] + u[i,j-1,k] + u[i,j-2,k]
 ```
+
+## Conditionals
