@@ -199,3 +199,111 @@ for k in range(k, end):
 ```
 
 ## Conditionals
+
+GTScript supports 2 kinds of conditionals:
+
+- conditionals on scalar expressions or compile-time constants
+- conditionals on field expressions (meaning a condition on the field value at the gridpoint of the current iteration or at a local offset of it)
+
+### Conditionals on scalar expressions or compile-time constants
+
+- Conditions in `if` statements are evaluated at run-time and are required to be of scalar type, e.g. scalar variables (not fields) or scalar expressions (no fields involved).
+- Each statement inside the if and else branches is executed as a `parfor` loop (same as statements outside of branches).
+- There is no restriction on the body of the statement.
+- For consistency sake with the following we use the condition inside the loop as a concept (the implementation detail to not do this should not matter here)
+
+Rationale:
+
+- Adding an `if True:` does not change the behavior at all.
+- The way the programmer thinks about execution is the same if within an if or not.
+- This makes function calls and scoped code behave the same.
+
+### Example
+
+```python
+with computation():
+    with interval(...):
+        if my_config_var:
+            a = 1
+            b = 2
+        else:
+            a = 2
+            b = 1
+```
+
+translates to:
+
+```python
+for k in range(start, end):
+    parfor ij:
+        if my_config_var:
+            a[i, j, k] = 1
+    parfor ij:
+        if my_config_var:
+            b[i, j, k] = 2
+    parfor ij:
+        if not my_config_var:
+            a[i, j, k] = 2
+    parfor ij:
+        if not my_config_var:
+            b[i, j, k] = 1
+```
+
+### Conditionals on field expressions
+
+- Conditions in `if` statements are evaluated at run-time and are of storage type, e.g. fields or temporary variables.
+- The condition is evaluated for all gridpoints
+- Each statement inside the if and else branches is executed as a `parfor` loop (same as statements outside of branches).
+- Inside the if and else blocks the same field cannot be written to **and** read with an offset (order does not matter).
+- The evaluated condition is read to decide which branch of the if-else statement is traversed inside the loop.
+
+Rationale:
+
+- If the offset read-write is disallowed the user can reason about the execution.
+- There is no real use-case that requires off center read and writes
+- If a problem pops up, creating a second if-statement can resolve this quite easily
+- We do not want to do 3 automatically since the user needs to think about what he wants.
+
+### Example
+
+```python
+with computation():
+    with interval(...):
+        if my_field_var:
+            a = 1
+            b = 2
+        else:
+            a = 2
+            b = 1
+```
+
+translates to:
+
+```python
+for k in range(start, end):
+    parfor ij:
+        condition[i,j,k] = my_field_var
+    parfor ij:
+        if condition[i,j,k]:
+            a[i, j, k] = 1
+    parfor ij:
+        if condition[i,j,k]:
+            b[i, j, k] = 2
+    parfor ij:
+        if not condition[i,j,k]:
+            a[i, j, k] = 2
+    parfor ij:
+        if not condition[i,j,k]:
+            b[i, j, k] = 1
+```
+
+The following case is illegal:
+
+```python
+with computation():
+    with interval(...):
+        tmp: Field[[I, J, K], float] = 1
+        if tmp == 1: # tmp is a temporary field
+            a = 1
+            b = a[1, 0, 0] # we read and write a
+```
