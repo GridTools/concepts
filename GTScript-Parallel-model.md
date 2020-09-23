@@ -49,7 +49,7 @@ The effect of the program is as if statements are executed as follows:
 4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
 5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [Conditionals](#conditionals).
 
-### Example
+### Examples
 
 In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
 the important parts. The domain is defined by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
@@ -96,30 +96,41 @@ simplicity and to avoid distraction from the important aspects.
 
 In the following, `k <= K`,
 
+**no specific loop order in k**
 ```python
-with computation(...):  # no specific loop order in k
+with computation(...):
     with interval(k, K):
         a = tmp[1, 1, 0]
+        b = 2 * a[0, 0, 0]
 ```
 
 behaves like
 
-```
-parfor k in range(k, K):
-    parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]
-    parfor ij:
-        b[i, j, k] = 2 * a[i, j, k]
-        b = 2 * a[0, 0, 0]
+```python
+# NumPy semantics
+a[i:I, j:J, k:K] = tmp[i+1:I+1, j+1:J+1, k:K]
+b[i:I, j:J, k:K] = 2 * a[i:I, j:J, k:K]
 ```
 
+**forward iteration in k**
 ```python
-with computation(FORWARD):  # Forward computation
+with computation(FORWARD):
     with interval(k, K):
         a = tmp[1, 1, 0]
         b = 2 * a[1, 1, 0]
+```
+behaves like
+```python
+for k in range(k, K):
+    parfor ij:
+        a[i, j, k] = tmp[i+1, j+1, k]
+    parfor ij:
+        b[i, j, k] = 2 * a[i+1, i+1, k]
+```
 
-with computation(BACKWARD):  # Backward computation
+**backward computation in k with interval specialization**
+```python
+with computation(BACKWARD):
     with interval(k, -2):  # lower interval
         a = tmp[1, 1, 0]
         b = 2 * a[0, 0, 0]
@@ -131,14 +142,6 @@ with computation(BACKWARD):  # Backward computation
 corresponds to the following pseudo-code:
 
 ```python
-# Forward computation
-for k in range(k, K):
-    parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]
-    parfor ij:
-        b[i, j, k] = 2 * a[i+1, i+1, k]
-
-# Backward computation
 # upper interval
 for k in reversed(range(K-2, K)):
     parfor ij:
