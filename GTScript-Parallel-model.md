@@ -225,7 +225,7 @@ with computation() with interval(...):
 translates to:
 
 ```python
-for k in range(start, end):
+for k in range(k, K):
     parfor ij:
         if my_config_var:
             a[i, j, k] = 1
@@ -242,20 +242,11 @@ for k in range(start, end):
 
 ### Conditionals on field expressions
 
-- Conditions in `if` statements are evaluated at run-time and are of storage type, e.g. fields or temporary variables.
-- The condition is evaluated for all gridpoints
-- Each statement inside the if and else branches is executed as a `parfor` loop (same as statements outside of branches).
+- The condition is evaluated for all gridpoints and stored in a mask.
+- Each statement inside the if and else branches is executed according to the same rules as statements outside of branches.
 - Inside the if and else blocks the same field cannot be written to **and** read with an offset (order does not matter).
-- The evaluated condition is read to decide which branch of the if-else statement is traversed inside the loop.
 
-Rationale:
-
-- If the offset read-write is disallowed the user can reason about the execution.
-- There is no real use-case that requires off center read and writes
-- If a problem pops up, creating a second if-statement can resolve this quite easily
-- We do not want to do 3 automatically since the user needs to think about what he wants.
-
-### Example
+**Example for conditionals on field expressions**
 
 ```python
 with computation():
