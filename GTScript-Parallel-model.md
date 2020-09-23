@@ -79,6 +79,7 @@ for k:
 
 </td>
 <td><details><summary>NumPy style</summary>
+
 NumPy style will be used where the focus of the code snippet is not on the implementation of this rule.
 ```python
 for k in range(k,K):
