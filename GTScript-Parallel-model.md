@@ -59,7 +59,7 @@ _Note: Temporarily, we will use 2 different notations to illustrate parallel beh
 (b) NumPy notation.
 Before merging this PR we should decide for one of the 2 notations._
 
-- **Rule 4**
+**Rule 4**
 
 ```python
 with computation(...):
