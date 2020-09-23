@@ -194,10 +194,8 @@ translates into the following pseudo code:
 
 ```python
 for k in range(k, end):
-    parfor [i_start-2:i_end+1, j_start-1:j_end+2]:
-        u[i, j, k] = 1
-    parfor [i_start:i_end, j_start:j_end]:
-        b[i, j, k] = u[i-2,j,k] + u[i+1,j,k] + u[i,j-1,k] + u[i,j-2,k]
+    u[i-2:J+1, j-2:J, k] = 1
+    b[i:I, j:J, k] = u[i-2:I-2, j:J, k] + u[i+1:I+1, j:J, k] + u[i:I,j-1:J-1,k] + u[i:I,j-2:J-2,k]
 ```
 
 ## Conditionals
