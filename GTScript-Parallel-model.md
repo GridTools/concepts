@@ -251,7 +251,7 @@ for k in range(k, K):
 ```python
 with computation():
     with interval(...):
-        if my_field_var:
+        if field:
             a = 1
             b = 2
         else:
@@ -264,18 +264,18 @@ translates to:
 ```python
 for k in range(start, end):
     parfor ij:
-        condition[i,j,k] = my_field_var
+        mask[i,j,k] = field[i,j,k]
     parfor ij:
-        if condition[i,j,k]:
+        if mask[i,j,k]:
             a[i, j, k] = 1
     parfor ij:
-        if condition[i,j,k]:
+        if mask[i,j,k]:
             b[i, j, k] = 2
     parfor ij:
-        if not condition[i,j,k]:
+        if not mask[i,j,k]:
             a[i, j, k] = 2
     parfor ij:
-        if not condition[i,j,k]:
+        if not mask[i,j,k]:
             b[i, j, k] = 1
 ```
 
