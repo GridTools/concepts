@@ -52,7 +52,7 @@ The effect of the program is as if statements are executed as follows:
 ### Example
 
 In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
-the important parts.
+the important parts. The domain is described by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
 
 **Rule 4**
 
