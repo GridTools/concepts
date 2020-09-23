@@ -47,7 +47,7 @@ The effect of the program is as if statements are executed as follows:
 2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
 3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
 4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
-5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [Conditionals]
+5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [Conditionals](#conditionals)
 
 ### Example
 
