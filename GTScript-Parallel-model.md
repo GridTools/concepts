@@ -296,5 +296,9 @@ with computation():
             a = 1
         else:
             b = a[1, 0, 0] # read with an offset from an updated field (a)
-`
+
+with computation(...):
+    with interval(...):
+        if field:
+            a = a[0,1,0] # self assignment with offset (i.e. a read with offset and write)
 ```
