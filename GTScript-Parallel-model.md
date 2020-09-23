@@ -54,11 +54,6 @@ The effect of the program is as if statements are executed as follows:
 In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
 the important parts. The domain is defined by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
 
-_Note: Temporarily, we will use 2 different notations to illustrate parallel behavior, we will use
-(a) a pseudocode notation where `parfor ij` describes a parallel for loop over the `i` and `j` dimensions;
-(b) NumPy notation.
-Before merging this PR we should decide for one of the 2 notations._
-
 **Rule 4**
 
 ```python
@@ -70,7 +65,8 @@ with computation(...):
 translates to
 
 <table><tr>
-<td><details><summary>NumPy style</summary>
+<td><details><summary>Parfor style</summary>
+This illustrates how a low-level implementation would look like.
 
 ```python
 for k:
@@ -81,7 +77,16 @@ for k:
         a = tmp_b
 ```
 
-</td></tr></table>
+</td>
+<td><details><summary>NumPy style</summary>
+NumPy style will be used where the focus of the code snippet is not on the implementation of this rule.
+```python
+for k in range(k,K):
+    a[i:I, j:J, k] = b[i:I, j:J, k]
+```
+
+</td>
+</tr></table>
 
 which reflects principle 4, the translation to parallel code is unambigous.
 Note: Removing the (in this case) unneeded temporary is up to optimization.
