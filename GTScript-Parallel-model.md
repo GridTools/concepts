@@ -146,14 +146,12 @@ behaves like
 
 ```python
 for k in reversed(range(K-2, K)): # upper interval
-    a[i:I, j:J, k:K] = 1.1
-    b[i:I, j:J, k:K] = 2.2
+    a[i:I, j:J, k] = 1.1
+    b[i:I, j:J, k] = 2.2
 
 for k in reversed(range(k, K-2)): # lower interval
-    parfor ij:
-        a[i, j, k] = tmp[i+1, j+1, k]
-    parfor ij:
-        b[i, j, k] = 2 * a[i, j, k]
+    a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
+    b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
 ```
 
 Note that intervals where exchanged to match the loop order.
