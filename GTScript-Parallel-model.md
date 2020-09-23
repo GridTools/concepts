@@ -111,7 +111,9 @@ parfor k in range(k, K):
     parfor ij:
         b[i, j, k] = 2 * a[i, j, k]
         b = 2 * a[0, 0, 0]
+```
 
+```python
 with computation(FORWARD):  # Forward computation
     with interval(k, K):
         a = tmp[1, 1, 0]
