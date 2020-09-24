@@ -1,7 +1,6 @@
 # GTScript language design guideline
 
-The following principles are a guideline for designing the GTScript DSL. We try to follow these principles if we can.
-In some cases we cannot fulfill all principles and a trade-off has to be made and justified.
+The following principles are a guideline for designing the GTScript DSL. We try to follow these principles if we can. In some cases we cannot fulfill all principles and a trade-off has to be made and justified.
 
 The principles are not magic, they mainly summarize the obvious.
 
@@ -18,26 +17,21 @@ Trivia: GTScript is an embedded DSL in Python, therefore language syntax is rest
 
 3. **Regular use-cases should be simple, special cases can be complex.**
 
-   Motivation: If a trade-off has to be made, the most common, standard use-cases should be expressed in the simplest
-   possible way. To cover all cases, corner cases might require more complex language constructs.
+   Motivation: If a trade-off has to be made, the most common, standard use-cases should be expressed in the simplest possible way. To cover all cases, corner cases might require more complex language constructs.
 
-4. **Language constructs are required to have an _unambiguous translation to parallel code_ and need to allow translation
-   to efficient code _in the regular use-cases_.**
+4. **Language constructs are required to have an _unambiguous translation to parallel code_ and need to allow translation to efficient code _in the regular use-cases_.**
 
-   Motivation: When translating DSL to executable code, we must not make correctness errors, therefore we cannot allow
-   ambiguous language constructs.
+   Motivation: When translating DSL to executable code, we must not make correctness errors, therefore we cannot allow ambiguous language constructs.
    If we fail,
 
    - the user will run into hard to debug problems,
    - the toolchain developer cannot reason about the code and will fail in writing correct optimizations.
 
-   On purpose, performance is second and, on purpose, the requirement to produce efficient code is restricted to regular use-cases. Obviously, for a performance portable language, the regular use-cases are required to have an
-   efficient translation. But this principle acknowledges that we cannot exclude that for some special cases an
-   efficient translation cannot be found.
+   On purpose, performance is second and, on purpose, the requirement to produce efficient code is restricted to regular use-cases. Obviously, for a performance portable language, the regular use-cases are required to have an efficient translation. But this principle acknowledges that we cannot exclude that for some special cases an efficient translation cannot be found.
 
 # Parallel Model
 
-The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension.
+The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension. Computations on the horizontal plane are always executed in parallel and thus `I` and `J` are called _parallel_ axes, while computations on `K` are executed sequentially and thus `K` is called a _sequential_ axis.
 
 A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an iteration policy (`FORWARD`, `BACKWARD`, `PARALLEL`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
 
@@ -51,8 +45,7 @@ The effect of the program is as if statements are executed as follows:
 
 ### Examples
 
-In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight
-the important parts. The domain is defined by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
+In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight the important parts. The domain is defined by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
 
 **Rule 4**
 
@@ -62,11 +55,12 @@ with computation(...):
         a = b
 ```
 
-translates to
+translates to the following pseudo-code snippet:
 
 <table><tr>
-<td><details><summary>Parfor style</summary>
-This illustrates how a low-level implementation would look like.
+<td width="50%", valign="top">
+
+_Parfor_ style: this illustrates how a low-level implementation would look like.
 
 ```python
 for k:
@@ -78,9 +72,10 @@ for k:
 ```
 
 </td>
-<td><details><summary>NumPy style</summary>
+<td width="50%", valign="top">
 
-NumPy style will be used where the focus of the code snippet is not on the implementation of this rule.
+_NumPy_ style: this illustrates how users can reason about the code.
+
 ```python
 for k in range(k,K):
     a[i:I, j:J, k] = b[i:I, j:J, k]
@@ -92,8 +87,7 @@ for k in range(k,K):
 which reflects principle 4, the translation to parallel code is unambigous.
 Note: Removing the (in this case) unneeded temporary is up to optimization.
 
-In the following examples, the translation of each right hand side to an intermediate temporary is implicit for
-simplicity and to avoid distraction from the important aspects.
+In the following examples, the translation of each right hand side to an intermediate temporary is implicit for simplicity and to avoid distraction from the important aspects. NumPy style will be used where the focus of the code snippet is not on the implementation of this rule.
 
 In the following, `k <= K`,
 
