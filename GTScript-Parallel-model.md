@@ -309,20 +309,20 @@ The vertical loop can have _directions_, indicated by the iteraiton policies FOR
 We introduce the behavior and policies in GTScript by looking at one sample code executed the in three different iterations policies.
 
 ```python
-with computation(FORWARD):  # Forward computation
+with computation(FORWARD):
     with interval(start, end):
         a[0,0,-1] = c
-        b[0,0,1] = 2 * a
+        b[0,0,1] = 2 * a # b will see old values of a
 
-with computation(BACKWARD):  # Forward computation
+with computation(BACKWARD):
     with interval(end, start):
-        a[0,0,-1] = c
-        b[0,0,1] = 2 * a
+        a[0,0,-1] = d
+        b[0,0,1] = 2 * a # b will see newly updated values form d (apart from the first k level (end))
 
-with computation(PARALLEL):  # Forward computation
+with computation(PARALLEL):
     with interval(start, end):
         a[0,0,-1] = c
-        b[0,0,1] = 2 * a
+        b[0,0,1] = 2 * a # b will have unspecified values depending on iteration order
 ```
 
 This code is translated in pseudo-code as:
