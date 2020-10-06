@@ -77,8 +77,8 @@ for k:
 _NumPy_ style: this illustrates how users can reason about the code.
 
 ```python
-for k in range(k,K):
-    a[i:I, j:J, k] = b[i:I, j:J, k]
+for k_ in range(k, K):
+    a[i:I, j:J, k] = b[i:I, j:J, k_]
 ```
 
 </td>
@@ -120,9 +120,9 @@ with computation(FORWARD):
 behaves like
 
 ```python
-for k in range(k, K):
-    a[i:I+1, j:J+1, k:K] = tmp[i+1:I+2, j+1:J+2, k:K] # extended compute domain
-    b[i:I, j:J, k:K] = 2 * a[i+1:I+1, j+1:J+1, k:K]
+for k_ in range(k, K):
+    a[i:I+1, j:J+1, k_] = tmp[i+1:I+2, j+1:J+2, k_] # extended compute domain
+    b[i:I, j:J, k_] = 2 * a[i+1:I+1, j+1:J+1, k_]
 ```
 
 **backward computation in k with interval specialization**
@@ -140,13 +140,13 @@ with computation(BACKWARD):
 behaves like
 
 ```python
-for k in reversed(range(K-2, K)): # upper interval
-    a[i:I, j:J, k] = 1.1
-    b[i:I, j:J, k] = 2.2
+for k_ in reversed(range(K-2, K)): # upper interval
+    a[i:I, j:J, k_] = 1.1
+    b[i:I, j:J, k_] = 2.2
 
-for k in reversed(range(k, K-2)): # lower interval
-    a[i:I, j:J, k] = tmp[i+1:I+1, j+1:J+1, k]
-    b[i:I, j:J, k] = 2 * a[i:I, j:J, k]
+for k_ in reversed(range(k, K-2)): # lower interval
+    a[i:I, j:J, k_] = tmp[i+1:I+1, j+1:J+1, k_]
+    b[i:I, j:J, k_] = 2 * a[i:I, j:J, k_]
 ```
 
 Note that intervals where exchanged to match the loop order.
@@ -167,8 +167,8 @@ behaves like:
 
 ```python
 tmp = Field(domain_shape)  # Uninitialized field (random data)
-for k in range(0, 3):
-    tmp[i:I, j:J, k] = 3   # Only this vertical range is properly initialized
+for k_ in range(0, 3):
+    tmp[i:I, j:J, k_] = 3   # Only this vertical range is properly initialized
 ```
 
 ## Compute Domain
@@ -188,9 +188,9 @@ with computation(...), interval(...):
 translates into the following pseudo code:
 
 ```python
-for k in range(k, end):
-    u[i-2:J+1, j-2:J, k] = 1
-    b[i:I, j:J, k] = u[i-2:I-2, j:J, k] + u[i+1:I+1, j:J, k] + u[i:I,j-1:J-1,k] + u[i:I,j-2:J-2,k]
+for k_ in range(k, K):
+    u[i-2:J+1, j-2:J, k_] = 1
+    b[i:I, j:J, k_] = u[i-2:I-2, j:J, k_] + u[i+1:I+1, j:J, k_] + u[i:I, j-1:J-1, k_] + u[i:I, j-2:J-2, k_]
 ```
 
 ## Conditionals
@@ -220,19 +220,19 @@ with computation() with interval(...):
 translates to:
 
 ```python
-for k in range(k, K):
+for k_ in range(k, K):
     parfor ij:
         if my_config_var:
-            a[i, j, k] = 1
+            a[i, j, k_] = 1
     parfor ij:
         if my_config_var:
-            b[i, j, k] = 2
+            b[i, j, k_] = 2
     parfor ij:
         if not my_config_var:
-            a[i, j, k] = 2
+            a[i, j, k_] = 2
     parfor ij:
         if not my_config_var:
-            b[i, j, k] = 1
+            b[i, j, k_] = 1
 ```
 
 ### Conditionals on field expressions
@@ -257,21 +257,21 @@ with computation():
 translates to:
 
 ```python
-for k in range(start, end):
+for k_ in range(k, K):
     parfor ij:
-        mask[i,j,k] = field[i,j,k]
+        mask[i, j] = (field[i, j, k_] != 0)
     parfor ij:
-        if mask[i,j,k]:
-            a[i, j, k] = 1
+        if mask[i, j]:
+            a[i, j, k_] = 1
     parfor ij:
-        if mask[i,j,k]:
-            b[i, j, k] = 2
+        if mask[i, j]:
+            b[i, j, k_] = 2
     parfor ij:
-        if not mask[i,j,k]:
-            a[i, j, k] = 2
+        if not mask[i, j]:
+            a[i, j, k_] = 2
     parfor ij:
-        if not mask[i,j,k]:
-            b[i, j, k] = 1
+        if not mask[i, j]:
+            b[i, j, k_] = 1
 ```
 
 The following cases are illegal:
