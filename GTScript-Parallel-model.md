@@ -259,18 +259,18 @@ translates to:
 ```python
 for k in range(start, end):
     parfor ij:
-        mask[i,j,k] = field[i,j,k]
+        mask[i,j] = field[i,j,k]
     parfor ij:
-        if mask[i,j,k]:
+        if mask[i,j]:
             a[i, j, k] = 1
     parfor ij:
-        if mask[i,j,k]:
+        if mask[i,j]:
             b[i, j, k] = 2
     parfor ij:
-        if not mask[i,j,k]:
+        if not mask[i,j]:
             a[i, j, k] = 2
     parfor ij:
-        if not mask[i,j,k]:
+        if not mask[i,j]:
             b[i, j, k] = 1
 ```
 
@@ -315,7 +315,7 @@ with computation(FORWARD):  # Forward computation
         b[0,0,1] = 2 * a
 
 with computation(BACKWARD):  # Forward computation
-    with interval(start, end):
+    with interval(end, start):
         a[0,0,-1] = c
         b[0,0,1] = 2 * a
 
@@ -328,23 +328,17 @@ with computation(PARALLEL):  # Forward computation
 This code is translated in pseudo-code as:
 
 ```python
-for k in range(min1, max1): #min < max
-    parfor ij:
-        a[0,0,-1] = c
-    parfor ij:
-        b[0,0,1] = 2 * a # b contains 2 times the previous values in a before the assignment of c, since a and b are evaluated at the same k-level
+for k in range(start, end):
+    a[i:I,j:J,k-1] = c[i:I,j:J,k]
+    b[i:I,j:J,k+1] = 2 * a[i:I,j:J,k] # b contains 2 times the previous values in a before the assignment of c, since a and b are evaluated at the same k-level
 
-for k in range(max2, min2): #min < max
-    parfor ij:
-        a[0,0,-1] = d
-    parfor ij:
-        b[0,0,1] = 2 * a # b is going to contain the 2*d except for the firt iteration point, max2.
+for k in range(end, start):
+    a[i:I,j:J,k-1] = d[i:I,j:J,k]
+    b[i:I,j:J,k+1] = 2 * a[i:I,j:J,k] # b is going to contain the 2*d except for the firt iteration point, max2.
 
-for k in shuffle(range(min3, max3)): #min < max
-    parfor ij:
-        a[0,0,-1] = c
-    parfor ij:
-        b[0,0,1] = 2 * a # depending on the order in which k-loop is executed we can find values from a or from c
+for k in shuffle(range(start, end)):
+    a[i:I,j:J,k-1] = c[i:I,j:J,k]
+    b[i:I,j:J,k+1] = 2 * a[i:I,j:J,k] # depending on the order in which k-loop is executed we can find values from a or from c
 ```
 
 ### Another code sample with conditionals:
@@ -363,9 +357,10 @@ with computation(FORWARD):  # Forward computation
 Which translates to
 
 ```python
-for k in range(min1, max1): #min < max
+for k in range(start, end):
+    mask[i:I, j:J] = x < 0
     parfor ij:
-        if (x < 0):
+        if (mask):
             a[0,0,-1] = 1
         else
             a[0,0,1] = 2 # This will be visible in the same computation
@@ -393,8 +388,9 @@ Which translates to
 
 ```python
 for k in range(min1, max1): #min < max
+    mask[i:I, j:J] = x < 0
     parfor ij:
-        if (x < 0):
+        if (mask):
             a[0,0,-1] = 1 # This will be visible in the same computation in assignment of b later
         else
             a[0,0,1] = 2 # This will be visible, eventually, in two k iterations
