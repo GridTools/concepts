@@ -302,7 +302,18 @@ with computation(...):
 The vertical direction, `K`, is special in weather and clinate applicaitons. It is used nut just for stencil computations but also for implicit skemes and other algorthms in physical parametrization.
 This is the reason why the vertical look is kept separate from tne horizontal IJ look in the parallel model.
 
-The vertical loop can have _directions_, indicated by the iteraiton policies FORWARD, BACKWARD and PARALLEL. To implement certain skemes it is natural to allow for off-center writes in the vertical direction, since the programmer can know in which order the values are accessed.
+The vertical loop can have _directions_, indicated by the iteraiton policies FORWARD, BACKWARD, or can left unspecified, intending that it could be possibly parallelized. To implement certain skemes it is natural to allow for off-center writes in the vertical direction, since the programmer can know in which order the values are accessed.
+
+There are different uses in which writing off-center can work with clear semantics: write at a location before the iteration loop reaches it (e.g., offset greater than zero in a FORWARD loop), and write at a location after the iteration loop reaches it (e.g., offset less than zero in a FORWARD loop). Both cases are valid. In the first we want to make the values visible in the same computation, in the second case we want to make the values available for subsequent computations. There are cases with conditionals in which the two cases above can be mixed up, but they are deterministic and creates no problems, even though understanding the code by the programmers can be difficult.
+
+### Policy for off-center writes
+
+The policy is the following:
+
+- If iteration policy is unspecified then write off-center in the vertical direction is forbidden and raise a compile error
+- If iteration policy is not PARALLEL the write off-center is allowed.
+
+In all this discussion we assumed the fields where off-center writes were performed had been allocated with the proper sizes and index spaces to accommodate them.
 
 <details>
 ### Simple example
@@ -401,13 +412,3 @@ for k in range(min1, max1): #min < max
 
 </details>
 
-There are different uses in which writing off-center can work with clear semantics: write at a location before the iteration loop reaches it (e.g., offset greater than zero in a FORWARD loop), and write at a location after the iteration loop reaches it (e.g., offset less than zero in a FORWARD loop). Both cases are valid. In the first we want to make the values visible in the same computation, in the second case we want to make the values available for subsequent computations. There are cases with conditionals in which the two cases above can be mixed up, but they are deterministic and creates no problems, even though understanding the code by the programmers can be difficult.
-
-### Policy for off-center writes
-
-The policy is the following:
-
-- If iteration policy is unspecified then write off-center in the vertical direction is forbidden and raise a compile error
-- If iteration policy is not PARALLEL the write off-center is allowed.
-
-In all this discussion we assumed the fields where off-center writes were performed had been allocated with the proper sizes and index spaces to accommodate them.
