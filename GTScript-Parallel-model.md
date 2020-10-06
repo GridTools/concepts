@@ -315,7 +315,7 @@ with computation(FORWARD):
         b[0,0,1] = 2 * a # b will see old values of a
 
 with computation(BACKWARD):
-    with interval(end, start):
+    with interval(start, end):
         a[0,0,-1] = d
         b[0,0,1] = 2 * a # b will see newly updated values form d (apart from the first k level (end))
 
