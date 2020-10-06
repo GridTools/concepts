@@ -330,7 +330,7 @@ with computation(BACKWARD):
         a[0,0,-1] = d
         b[0,0,1] = 2 * a # b will see newly updated values form d (apart from the first k level (end))
 
-with computation(PARALLEL):
+with computation(...):
     with interval(start, end):
         a[0,0,-1] = c
         b[0,0,1] = 2 * a # b will have unspecified values depending on iteration order
@@ -347,9 +347,7 @@ for k in range(end, start):
     a[i:I,j:J,k-1] = d[i:I,j:J,k]
     b[i:I,j:J,k+1] = 2 * a[i:I,j:J,k] # b is going to contain the 2*d except for the firt iteration point, max2.
 
-for k in shuffle(range(start, end)):
-    a[i:I,j:J,k-1] = c[i:I,j:J,k]
-    b[i:I,j:J,k+1] = 2 * a[i:I,j:J,k] # depending on the order in which k-loop is executed we can find values from a or from c
+    # The third case is ambiguous and will raise a compilation error
 ```
 
 ### Another code sample with conditionals:
