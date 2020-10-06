@@ -407,7 +407,7 @@ There are different uses in which writing off-center can work with clear semanti
 
 The policy is the following:
 
-- If iteration policy is PARALLEL then write off-center in the vertical direction is forbidden and raise a compile error
+- If iteration policy is unspecified then write off-center in the vertical direction is forbidden and raise a compile error
 - If iteration policy is not PARALLEL the write off-center is allowed.
 
 In all this discussion we assumed the fields where off-center writes were performed had been allocated with the proper sizes and index spaces to accommodate them.
