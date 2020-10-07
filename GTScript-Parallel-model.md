@@ -78,7 +78,7 @@ _NumPy_ style: this illustrates how users can reason about the code.
 
 ```python
 for k_ in range(k, K):
-    a[i:I, j:J, k] = b[i:I, j:J, k_]
+    a[i:I, j:J, k_] = b[i:I, j:J, k_]
 ```
 
 </td>
