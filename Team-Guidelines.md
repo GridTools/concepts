@@ -12,7 +12,7 @@ Rationale:
 - Smaller PRs are easier to review, increasing code quality. Reviews on large PRs tend to focus on details as the overall design is lost in the size. The possiblity to [learn from the review](#review-is-a-platform-for-learning-and-knowledge-transfer) is reduced as patterns are harder to understand.
 - Small PRs encourage [faster review](#Review-in-a-timely-manner).
 
-Reviewer and reviewee should decide together if it makes sense to split a large PR into smaller self-contained units.
+Reviewer and reviewee should decide together if it makes sense to split a large PR into smaller self-contained units. If a PR is conjectured to be inevitably large, the required time for the corresponding review should be taking into account in the sprint planning.
 
 ### PRs are squash merged
 
