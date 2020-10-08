@@ -296,3 +296,117 @@ with computation(...):
         if field:
             a = a[0, 1, 0] # self assignment with offset (i.e. a read with offset and write)
 ```
+
+## Off-center writes in `K`
+
+The vertical direction, `K`, is special in weather and clinate applicaitons. It is used nut just for stencil computations but also for implicit skemes and other algorthms in physical parametrization.
+This is the reason why the vertical look is kept separate from tne horizontal IJ look in the parallel model.
+
+The vertical loop can have _directions_, indicated by the iteraiton policies FORWARD, BACKWARD, or can left unspecified, intending that it could be possibly parallelized. To implement certain skemes it is natural to allow for off-center writes in the vertical direction, since the programmer can know in which order the values are accessed.
+
+There are different uses in which writing off-center can work with clear semantics: write at a location before the iteration loop reaches it (e.g., offset greater than zero in a FORWARD loop), and write at a location after the iteration loop reaches it (e.g., offset less than zero in a FORWARD loop). Both cases are valid. In the first we want to make the values visible in the same computation, in the second case we want to make the values available for subsequent computations. There are cases with conditionals in which the two cases above can be mixed up, but they are deterministic and creates no problems, even though understanding the code by the programmers can be difficult.
+
+### Policy for off-center writes
+
+The policy is the following:
+
+- If iteration policy is unspecified then write off-center in the vertical direction is forbidden and raise a compile error
+- If iteration policy is not PARALLEL the write off-center is allowed.
+
+In all this discussion we assumed the fields where off-center writes were performed had been allocated with the proper sizes and index spaces to accommodate them.
+
+<details>
+### Simple example
+We introduce the behavior and policies in GTScript by looking at one sample code executed the in three different iterations policies.
+
+```python
+with computation(FORWARD):
+    with interval(start, end):
+        a[0,0,-1] = c
+        b[0,0,1] = 2 * a # b will see old values of a
+
+with computation(BACKWARD):
+    with interval(start, end):
+        a[0,0,-1] = d
+        b[0,0,1] = 2 * a # b will see newly updated values form d (apart from the first k level (end))
+
+with computation(...):
+    with interval(start, end):
+        a[0,0,-1] = c
+        b[0,0,1] = 2 * a # b will have unspecified values depending on iteration order
+```
+
+This code is translated in pseudo-code as:
+
+```python
+for k in range(start, end):
+    a[i:I,j:J,k-1] = c[i:I,j:J,k]
+    b[i:I,j:J,k+1] = 2 * a[i:I,j:J,k] # b contains 2 times the previous values in a before the assignment of c, since a and b are evaluated at the same k-level
+
+for k in range(end, start):
+    a[i:I,j:J,k-1] = d[i:I,j:J,k]
+    b[i:I,j:J,k+1] = 2 * a[i:I,j:J,k] # b is going to contain the 2*d except for the firt iteration point, max2.
+
+    # The third case is ambiguous and will raise a compilation error
+```
+
+### Another code sample with conditionals:
+
+```python
+with computation(FORWARD):  # Forward computation
+    with interval(start, end):
+        if (x < 0):
+            a[0,0,-1] = 1
+        else
+            a[0,0,1] = 2
+
+        b = a
+```
+
+Which translates to
+
+```python
+for k in range(start, end):
+    mask[i:I, j:J] = x < 0
+    parfor ij:
+        if (mask):
+            a[0,0,-1] = 1
+        else
+            a[0,0,1] = 2 # This will be visible in the same computation
+
+    parfor ij:
+        b = a
+```
+In this case `b` will contains 2 where `x<0`, otherwise the values contained in `a` before the computation started. This is true except for the first iteration point `min1`, for which `b` contains just the previous values contained in `a`.
+
+
+### Another code sample with conditionals and offset reads:
+
+```python
+with computation(FORWARD):  # Forward computation
+    with interval(start, end):
+        if (x < 0):
+            a[0,0,-1] = 1
+        else
+            a[0,0,1] = 2
+
+        b = a[0,0,-1]
+```
+
+Which translates to
+
+```python
+for k in range(min1, max1): #min < max
+    mask[i:I, j:J] = x < 0
+    parfor ij:
+        if (mask):
+            a[0,0,-1] = 1 # This will be visible in the same computation in assignment of b later
+        else
+            a[0,0,1] = 2 # This will be visible, eventually, in two k iterations
+
+    parfor ij:
+        b = a[0,0,-1]
+```
+
+</details>
+
