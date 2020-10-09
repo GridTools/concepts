@@ -300,7 +300,7 @@ with computation(...):
 ## Off-center writes in `K`
 
 The vertical direction, `K`, is special in weather and climate applications. It is used not just for stencil computations but also for implicit schemes (solvers) and other algorithms in physical parameterizations.
-This is the reason why the vertical look is kept separate from tne horizontal IJ look in the parallel model.
+This is the reason why the vertical loop is kept separate from the horizontal IJ loops in the parallel model.
 
 The vertical loop can have _directions_, indicated by the iteraiton policies FORWARD, BACKWARD, or can left unspecified, intending that it could be possibly parallelized. To implement certain skemes it is natural to allow for off-center writes in the vertical direction, since the programmer can know in which order the values are accessed.
 
