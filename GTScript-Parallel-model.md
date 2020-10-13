@@ -33,7 +33,7 @@ Trivia: GTScript is an embedded DSL in Python, therefore language syntax is rest
 
 The iteration domain is a 3d domain: `I` and `J` axes live on the horizontal spatial plane, and axis `K` represents the vertical spatial dimension. Computations on the horizontal plane are always executed in parallel and thus `I` and `J` are called _parallel_ axes, while computations on `K` are executed sequentially and thus `K` is called a _sequential_ axis.
 
-A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an iteration policy (`FORWARD`, `BACKWARD`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over with the iteration policy of the coputation. Each interval contains one or more statements.
+A `gtscript.stencil` is composed of one or more `computation`. Each `computation` defines an iteration policy (`FORWARD`, `BACKWARD`) and is itself composed of one or more non-overlapping vertical `interval` specifications, each one of them representing a vertical loop over the `K` axis with the iteration policy of the computation. Intervals are specified in their order of execution with each interval containing one or more statements.
 
 The effect of the program is as if statements are executed as follows:
 
