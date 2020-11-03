@@ -26,11 +26,19 @@ A weather and climate model developed by DWD and MPI-M build on a icosahedral gr
 
 TODO disambiguate from compute domain or make it an alias.
 
+### Local Field
+
+An array located on a [grid point](#Grid-point) with one entry per neighbor location.
+
 ### Origin
 
 ### Pentagon problem
 
 In the ICON grid, the sphere is built from rhomboids. Within each rhomboid the mesh and dual-mesh are fully structured (triangles, each vertex has exactly 6 edges). At corner points where the rhomboids are patched together, each vertex has only 5 neighbors. TODO add picture.
+
+### Sparse Field
+
+In the context of [unstructured grids](#Unstructured-Grid), a sparse field, is a field with a [local field](#Local-Field) on each [grid point](#grid-point).
 
 ### Structured Grid
 
