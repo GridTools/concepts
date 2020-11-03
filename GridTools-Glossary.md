@@ -38,7 +38,7 @@ In the ICON grid, the sphere is built from rhomboids. Within each rhomboid the m
 
 ### Sparse Field
 
-In the context of [unstructured grids](#Unstructured-Grid), a sparse field, is a field with a [local field](#Local-Field) on each [grid point](#grid-point).
+In the context of [unstructured grids](#Unstructured-Grid), a sparse field, is a field defined on the neighbors of each [grid point](#grid-point). The restriction of a sparse field to a single [grid point](#grid-point) is a [local field](#Local-Field). The name originates from the sparse nature of the second / neighbor dimension.
 
 ### Structured Grid
 
