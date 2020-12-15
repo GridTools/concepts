@@ -221,17 +221,15 @@ translates to:
 
 ```python
 for k_ in range(k, K):
-    parfor ij:
-        if my_config_var:
+    if my_config_var:
+        parfor ij:
             a[i, j, k_] = 1
-    parfor ij:
-        if my_config_var:
+        parfor ij:
             b[i, j, k_] = 2
-    parfor ij:
-        if not my_config_var:
+    else:
+        parfor ij:
             a[i, j, k_] = 2
-    parfor ij:
-        if not my_config_var:
+        parfor ij:
             b[i, j, k_] = 1
 ```
 
