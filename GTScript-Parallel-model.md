@@ -42,6 +42,7 @@ The effect of the program is as if statements are executed as follows:
 3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
 4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
 5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [Conditionals](#conditionals).
+6. it is illegal to write to a field (or aliases pointing to the same memory location) in the same computation where it is read with horizontal offset.
 
 ### Examples
 
@@ -90,6 +91,28 @@ Note: Removing the (in this case) unneeded temporary is up to optimization.
 In the following examples, the translation of each right hand side to an intermediate temporary is implicit for simplicity and to avoid distraction from the important aspects. NumPy style will be used where the focus of the code snippet is not on the implementation of this rule.
 
 In the following, `k <= K`,
+
+**Rule 6**
+
+The following cases are forbidden:
+
+Write after read with offset
+```python
+with computation(FORWARD)
+    with interval(...):
+        b = a[1,1,0]
+        a = 0.
+```
+
+Shifted self-assignment
+```python
+with computation(FORWARD):
+    with interval(...):
+        a = a[1,1,0]
+```
+
+These cases are forbidden as, in general, there is no efficient mapping to a blocked execution.
+
 
 **no specific loop order in k**
 
