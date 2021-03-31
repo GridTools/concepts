@@ -1,6 +1,6 @@
 # GridTools Concepts
 
-This repository is wiki-only. The wiki is managed via PRs to this repository.
+This repository is wiki-only. The [wiki](https://github.com/GridTools/concepts/wiki) is managed via PRs to this repository.
 
 ## How to edit the Wiki?
 
