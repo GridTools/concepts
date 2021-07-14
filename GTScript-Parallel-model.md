@@ -40,7 +40,7 @@ The effect of the program is as if statements are executed as follows:
 1. _computations_ are executed sequentially in the order they appear in the code,
 2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
 3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-4. within a computation, it is illegal to write to an external (non-temporary) field (or aliases pointing to the same memory location) if it is also read with horizontal offset; this rule does not apply to temporaries,
+4. within a computation, it is illegal to write to an external (non-temporary) field (or aliases pointing to the same memory location) if it is was read with horizontal offset in a preceding statement; this rule does not apply to temporaries,
 5. in an assignment, a field cannot be assigned to, if it's used in the r.h.s. expression with a horizontal offset; note that this rule only applies to temporaries as this pattern is already excluded for external fields by rule 4,
 6. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rules as above.
 
