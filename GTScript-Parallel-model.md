@@ -40,56 +40,37 @@ The effect of the program is as if statements are executed as follows:
 1. _computations_ are executed sequentially in the order they appear in the code,
 2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
 3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
-4. for every _assignment_ inside the _interval_, first, the right hand side is evaluated in a parallel for-loop over the horizontal dimension(s), then, the resulting horizontal slice is assigned to the left hand side.
-5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rule as above. Some restrictions apply to offset reads, see [Conditionals](#conditionals).
+4. within a computation, it is illegal to write to an external (non-temporary) field (or aliases pointing to the same memory location) if it is also read with horizontal offset; this rule does not apply to temporaries,
+5. in an assignment, a field cannot be assigned to, if it's used in the r.h.s. expression with a horizontal offset; note that this rule only applies to temporaries as this pattern is already excluded for external fields by rule 4,
+6. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rules as above.
 
 ### Examples
 
 In the following, the code snippets are not always complete GTScript snippets, instead parts are omitted (e.g. by `...`) to highlight the important parts. The domain is defined by the intervals `[i,I]`, `[j,J]`, `[k,K]`.
 
+In the following, `k <= K`,
+
 **Rule 4**
 
+The following cases are forbidden:
+
+Write after read with offset
 ```python
-with computation(...):
+with computation(FORWARD)
     with interval(...):
-        a = b
+        b = a[1,1,0]
+        a = 0.
 ```
 
-translates to the following pseudo-code snippet:
-
-<table><tr>
-<td width="50%", valign="top">
-
-_Parfor_ style: this illustrates how a low-level implementation would look like.
-
+Shifted self-assignment
 ```python
-for k:
-    tmp_b: IJField
-    parfor ij:
-        tmp_b = b
-    parfor ij:
-        a = tmp_b
+with computation(FORWARD):
+    with interval(...):
+        a = a[1,1,0]
 ```
 
-</td>
-<td width="50%", valign="top">
+These cases are forbidden as, in general, there is no efficient mapping to a blocked execution.
 
-_NumPy_ style: this illustrates how users can reason about the code.
-
-```python
-for k_ in range(k, K):
-    a[i:I, j:J, k_] = b[i:I, j:J, k_]
-```
-
-</td>
-</tr></table>
-
-which reflects principle 4, the translation to parallel code is unambigous.
-Note: Removing the (in this case) unneeded temporary is up to optimization.
-
-In the following examples, the translation of each right hand side to an intermediate temporary is implicit for simplicity and to avoid distraction from the important aspects. NumPy style will be used where the focus of the code snippet is not on the implementation of this rule.
-
-In the following, `k <= K`,
 
 **no specific loop order in k**
 
@@ -239,7 +220,6 @@ for k_ in range(k, K):
 
 - The condition is evaluated for all gridpoints and stored in a mask.
 - Each statement inside the if and else branches is executed according to the same rules as statements outside of branches.
-- Inside the if and else blocks the same field cannot be written to **and** read with an offset in the parallel axises (order does not matter).
 
 **Example for conditionals on field expressions**
 
