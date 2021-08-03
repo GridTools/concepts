@@ -1,4 +1,4 @@
-# Yet Another New Model for Unstructured 
+# Iterator view
 
 ## Definitions
 
