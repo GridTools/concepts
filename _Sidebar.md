@@ -6,6 +6,8 @@
 
 [Parallel Model](GTScript-Parallel-model)
 
+[[Iterator View]]
+
 ### Team
 
 [[Team Guidelines]]
