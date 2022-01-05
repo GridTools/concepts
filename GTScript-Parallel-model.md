@@ -254,6 +254,19 @@ for k_ in range(k, K):
             b[i, j, k_] = 1
 ```
 
+or in Numpy notation
+
+```
+for k_ in range(k, K):
+    mask = field[:, :, k_] != 0
+    a[:, :, k_] = np.where(mask, 1, a[:, :, k_])
+    b[:, :, k_] = np.where(mask, 2, b[:, :, k_])
+    a[:, :, k_] = np.where(~mask, 2, a[:, :, k_])
+    b[:, :, k_] = np.where(~mask, 1, b[:, :, k_])
+```
+
+(if and else branch is on purpose not written as a single `np.where`).
+
 The following cases are illegal:
 
 ```python
