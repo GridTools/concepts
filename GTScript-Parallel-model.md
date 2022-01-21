@@ -304,7 +304,7 @@ with computation(FORWARD), interval(...):
         a += 1
 ```
 
-In the parallel model the user will expect this to translate to
+This translates to
 
 ```python
 for k_ in range(k, K):
