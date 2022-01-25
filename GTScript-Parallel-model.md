@@ -289,3 +289,56 @@ with computation(...):
         if field:
             a = a[0, 1, 0] # self assignment with offset (i.e. a read with offset and write)
 ```
+
+## Loops
+### While
+
+GTScript has limited support for while loops, which iterate a set of statements nested inside
+it a number of times until all IJ points fail the condition. Note that this means certain IJ
+indices could execute the statements a different number of iterations. The syntax is:
+
+```python
+with computation(FORWARD), interval(...):
+    while a < b:
+        c += 1
+        a += 1
+```
+
+This translates to
+
+```python
+for k_ in range(k, K):
+    parfor ij:
+        mask[i, j] = (a[i, j, k_] < b[i, j, k_])
+    while any(mask):
+        parfor ij:
+            if mask[i, j]:
+                c[i, j, k_] += 1
+        parfor ij:
+            if mask[i, j]:
+                a[i, j, k_] += 1
+        parfor ij:
+            mask[i, j] = (a[i, j, k_] < b[i, j, k_])
+```
+
+however due to the blocking model used, there is no way to enforce
+synchronizations between the nested statements, or the mask update.
+This is a subtle but important point to remember when employing
+while loops. The final parallel model behaves as
+
+```python
+for k_ in range(k, K):
+    parfor ij:
+        mask[i, j] = (a[i, j, k_] < b[i, j, k_])
+    while any(mask):
+        parfor ij:
+            if mask[i, j]:
+                c[i, j, k_] += 1
+                a[i, j, k_] += 1
+            mask[i, j] = (a[i, j, k_] < b[i, j, k_])
+```
+
+The conclusion from this is that the user is not allowed to write to
+variables used with a horizontal offset either in the mask or elsewhere in
+the body of the while. The gtscript frontend implemented in gt4py contains checks
+to ensure that a user cannot write code incompatible with this restriction.
