@@ -322,8 +322,8 @@ for k_ in range(k, K):
 ```
 
 however due to the blocking model used, there is no way to enforce
-synchronizations between the nested statements, or the mask update.
-This is a subtle but important point to remember when employing
+synchronizations between the nested statements and the mask update.
+This is a subtle but important point to remember when writing
 while loops. The final parallel model behaves as
 
 ```python
@@ -339,6 +339,7 @@ for k_ in range(k, K):
 ```
 
 The conclusion from this is that the user is not allowed to write to
-variables used with a horizontal offset either in the mask or elsewhere in
-the body of the while. The gtscript frontend implemented in gt4py contains checks
-to ensure that a user cannot write code incompatible with this restriction.
+fields in the body of the while loop that are used in the mask with
+a horizontal offset. The gtscript frontend implemented in gt4py
+contains checks to ensure that a user cannot write code incompatible
+with this restriction.
