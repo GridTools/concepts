@@ -339,7 +339,7 @@ for k_ in range(k, K):
 ```
 
 The conclusion from this is that the user is not allowed to write to
-fields in the body of the while loop that are used in the mask with
+fields in the body of the while loop that are used in the mask or elsewhere in the body with
 a horizontal offset. The gtscript frontend implemented in gt4py
 contains checks to ensure that a user cannot write code incompatible
 with this restriction.
