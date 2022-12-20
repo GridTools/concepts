@@ -41,7 +41,8 @@ The effect of the program is as if statements are executed as follows:
 2. vertical _intervals_ are executed sequentially in the order defined by the _iteration policy_ of the _computation_
 3. every vertical _interval_ is executed as a sequential for-loop over the `K`-range following the order defined by the iteration policy,
 4. within a stencil, it is illegal to assign to an external field (or aliases pointing to the same memory location) if it is also read with horizontal offset in any expression that is (transitively) used to compute the r.h.s. of the assignment,
-5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rules as above.
+5. for `if`-`else` statements, the condition is evaluated first, then the `if` and `else` bodies are evaluated with the same rules as above,
+6. execution of a program is illegal if any field access in any branch is outside of array bounds.
 
 ### Examples
 
