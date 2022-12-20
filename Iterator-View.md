@@ -228,6 +228,8 @@ is the same as
 
 ### Concepts
 
+- **Axis** - a tag denoting a dimension of the domain
+- **NamedRange** - can be passed to `domain` builtin
 - **Domain** - can be followed by the `:domain` designator in the fencil definition. 
 - **Value** - a type that potentially can be stored in the field.
 - **Location** - one of `:cell`, `:vertex` or `:edge` 
@@ -243,8 +245,8 @@ is the same as
 ### Signatures
 
 ```cpp=
-  Domain cartesian(int i0, int i1, int j0, int j1, int k0, int k1);
-  Domain unstructured(Location, int hor0, int hor1, int k0, int k1);
+  NamedRange named_range(Axis, int begin, int end)
+  Domain domain(NamedRange...);
 
   // Iterators API
   Stencil<Iterator<V>, V> shift(Offsets...);
@@ -272,8 +274,8 @@ is the same as
   To cast<To>(From);
   
   // ternary operator
-  V if(bool, V, V);
-  Column<V> if(Column<bool>, Column<V>, Column<V>);
+  V if_(bool, V, V);
+  Column<V> if_(Column<bool>, Column<V>, Column<V>);
   
   // conditionals 
   bool eq(V, V);
@@ -302,9 +304,9 @@ is the same as
   V minus(V, V);
   Column<V> minus(Column<V>, Column<V>);
   
-  V mult(V, V);
-  Column<V> mult(Column<V>, Column<V>);
+  V mul(V, V);
+  Column<V> mul(Column<V>, Column<V>);
   
-  V divides(V, V);
-  Column<V> divides(Column<V>, Column<V>);
+  V div(V, V);
+  Column<V> div(Column<V>, Column<V>);
 ```
