@@ -264,7 +264,9 @@ is the same as
   
   // Tuple API
   Tuple<Vs...> make_tuple(Vs...);
-  auto nth(int, Tuple<Vs...>);
+  auto tuple_get(int, Tuple<Vs...>);
+  Tuple<Iterator<Vs>...> make_tuple(Iterator<Vs>...);
+  auto tuple_get(int, Tuple<Iterator<Vs>...>);
   
   // Those helpers are needed
   // if we do not want to support implicit type conversions
@@ -274,6 +276,7 @@ is the same as
   // ternary operator
   V if(bool, V, V);
   Column<V> if(Column<bool>, Column<V>, Column<V>);
+  Iterator<V> if(bool, Iterator<V>, Iterator<V>);
   
   // conditionals 
   bool eq(V, V);
