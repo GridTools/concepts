@@ -352,3 +352,96 @@ fields in the body of the while loop that are used in the mask or elsewhere in t
 a horizontal offset. The gtscript frontend implemented in gt4py
 contains checks to ensure that a user cannot write code incompatible
 with this restriction.
+
+## Off-center writes in `K`
+
+The vertical direction, `K`, is special in weather and climate applications. It is used not just for stencil computations but also for implicit schemes (solvers) and other algorithms in physical parameterizations.
+This is the reason why the vertical loop is kept separate from the horizontal IJ loops in the parallel model.
+
+The vertical loop can have _directions_, indicated by the iteraiton policies `FORWARD`, `BACKWARD`, or can be left unspecified, intending that it can potentially be parallelized. To implement certain schemes it is natural to allow for off-center writes (e.g. `field[K-1] = ...` instead of `field = ...`) in the vertical direction, since the programmer can know in which order the values are accessed.
+
+There are different use cases in which writing off-center can work with clear semantics: write at a K-index before the iteration loop reaches it (e.g., offset greater than zero in a `FORWARD` loop), and write at a location after the iteration loop reaches it (e.g., offset less than zero in a `FORWARD` loop). Both cases are valid. In the first we want to make the values visible in the same computation, in the second case we want to make the values available for subsequent computations. There are cases with conditionals in which the two cases above can be mixed up, but they are deterministic and creates no problems, even though understanding the code by the programmers can be difficult.
+
+### Policy for off-center writes
+
+The policy is the following:
+
+- If iteration policy is unspecified or `PARALLEL` then writing to off-center in the vertical direction is forbidden and raises a compile error.
+- If iteration policy is `FORWARD` or `BACKWARD` the write off-center is allowed.
+
+In all this discussion we assumed the fields where off-center writes were performed had been allocated with the proper sizes and index spaces to accommodate them.
+
+### Simple off-center write example
+
+We introduce the behavior and policies in GTScript by looking at an example code exuted using three different iteration policies
+
+```python
+with computation(FORWARD):
+    with interval(start, end):
+        a[0,0,-1] = c
+        b[0,0,1] = 2 * a # b will see un-modified values of a
+
+with computation(BACKWARD):
+    with interval(start, end):
+        a[0,0,-1] = d
+        b[0,0,1] = 2 * a # b will see newly updated values form d (apart from the first k level (end))
+
+with computation(...):
+    with interval(start, end):
+        a[0,0,-1] = e
+        b[0,0,1] = 2 * a # b will have unspecified values depending on iteration order therefore this is a forbidden pattern that will trigger a compilation error
+```
+
+### Example of off-center write with conditionals
+
+```python
+with computation(FORWARD):  # Forward computation
+    with interval(start, end):
+        if (x < 0):
+            a[0,0,-1] = 1
+        else
+            a[0,0,1] = 2
+
+        b = a
+```
+
+```python
+for k in range(start, end):
+    mask[i:I, j:J] = x < 0
+    parfor ij:
+        if (mask):
+            a[0,0,-1] = 1
+        else
+            a[0,0,1] = 2 # This will be visible in the same computation
+
+    parfor ij:
+        b = a
+```
+
+### Example of off-center write with conditionals and offset reads:
+
+```python
+with computation(FORWARD):  # Forward computation
+    with interval(start, end):
+        if (x < 0):
+            a[0,0,-1] = 1
+        else
+            a[0,0,1] = 2
+
+        b = a[0,0,-1]
+```
+
+Which translates to
+
+```python
+for k in range(min1, max1): #min < max
+    mask[i:I, j:J] = x < 0
+    parfor ij:
+        if (mask):
+            a[0,0,-1] = 1 # This will be visible in the same computation in assignment of b later
+        else
+            a[0,0,1] = 2 # This will be visible, eventually, in two k iterations
+
+    parfor ij:
+        b = a[0,0,-1]
+```
